@@ -10,10 +10,8 @@ export async function createClient() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        // Direkomendasikan: Gunakan getAll dan setAll
         getAll() {
-          // Mengembalikan semua cookie sebagai array objek { name, value }
-          return cookieStore.getAll().map(cookie => ({
+          return cookieStore.getAll().map((cookie) => ({
             name: cookie.name,
             value: cookie.value,
           }));
@@ -24,15 +22,9 @@ export async function createClient() {
               cookieStore.set(name, value, options)
             );
           } catch (error) {
-            // The `set` method is only available in a Server Component or Server Action.
-            // This might happen if you're using a client-side component that is also
-            // calling a Server Action, in which case the `cookies()` won't be available.
-            // For now, we'll just log the error.
-            console.warn('Failed to set cookie in createClient:', error);
+            console.warn("Failed to set cookie in createClient:", error);
           }
         },
-        // 'get', 'set', dan 'remove' individual sudah deprecated dan dihapus di sini
-        // berdasarkan saran dari error message.
       },
     }
   );
@@ -53,8 +45,8 @@ export async function getUser() {
   }
 
   const { data: profile, error: profileError } = await supabase
-    .from("profiles")
-    .select("username, role")
+    .from("User")
+    .select("user_name, role")
     .eq("id", user.id)
     .single();
 
@@ -64,14 +56,14 @@ export async function getUser() {
       id: user.id,
       email: user.email,
       name: user.email,
-      role: "unknown", // Fallback ke role 'unknown'
+      role: "unknown",
     };
   }
 
   return {
     id: user.id,
     email: user.email,
-    name: profile.username,
+    name: profile.user_name,
     role: profile.role,
   };
 }
