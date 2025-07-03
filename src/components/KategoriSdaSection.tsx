@@ -1,90 +1,67 @@
-// components/Materi/MateriPopulerSection.tsx
-import React from "react";
-import MateriCard from "./MateriPopulerCard"; // Import komponen kartu tunggal
+"use client";
+import React, { useEffect, useState } from "react";
+import MateriCard from "./MateriPopulerCard";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { getPopularMateriAction } from "@/action/materiDetails";
+import { getAllCategoriesAction } from "@/action/kategoriAction";
 
-// Dummy Data untuk materi populer
-const dummyMateriPopuler = [
-  {
-    id: "materi-1",
-    judul: "Panduan Lengkap Pengolahan Kopi Arabika di Papua",
-    description:
-      "Pelajari langkah-langkah detail dari panen hingga roasting untuk menghasilkan kopi arabika berkualitas tinggi.",
-    image_url:
-      "https://images.unsplash.com/photo-1511920170033-0d8a70923055?q=80&w=2940&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D", // Contoh gambar kopi
-    video_url: "https://www.youtube.com/watch?v=your-video-id-1", // URL video dummy
-    langkah_langkah: [
-      "Panen buah kopi",
-      "Fermentasi",
-      "Pengeringan",
-      "Grinding",
-      "Roasting",
-    ],
-    category: "kopi",
-    created_at: "2025-06-25T10:00:00Z",
-    views_count: 1250, // Dummy views count
-  },
-  {
-    id: "materi-2",
-    judul: "Membuat Tepung Sagu Berkualitas dari Pohon Sagu Papua",
-    description:
-      "Panduan praktis cara mengekstrak sagu dari pohon dan mengolahnya menjadi tepung yang siap digunakan.",
-    image_url:
-      "https://images.unsplash.com/photo-1627581135249-14a0f4b3e8e2?q=80&w=2940&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D", // Contoh gambar sagu
-    video_url: "https://www.youtube.com/watch?v=your-video-id-2",
-    langkah_langkah: [
-      "Penebangan pohon",
-      "Ekstraksi pati",
-      "Pengendapan",
-      "Pengeringan",
-    ],
-    category: "sagu",
-    created_at: "2025-06-20T11:30:00Z",
-    views_count: 980,
-  },
-  {
-    id: "materi-3",
-    judul: "Manfaat dan Pengolahan Minyak Buah Merah Asli Papua",
-    description:
-      "Kenali khasiat buah merah dan langkah-langkah pengolahannya menjadi minyak kesehatan yang kaya antioksidan.",
-    image_url:
-      "https://images.unsplash.com/photo-1627581135249-14a0f4b3e8e2?q=80&w=2940&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D", // Ganti dengan gambar buah merah asli
-    video_url: "https://www.youtube.com/watch?v=your-video-id-3",
-    langkah_langkah: [
-      "Panen buah",
-      "Ekstraksi minyak",
-      "Penyaringan",
-      "Pengemasan",
-    ],
-    category: "buah_merah",
-    created_at: "2025-06-15T09:15:00Z",
-    views_count: 750,
-  },
-  {
-    id: "materi-4",
-    judul: "Budidaya Maggot BSF untuk Mengolah Limbah Organik Rumah Tangga",
-    description:
-      "Panduan mudah memulai budidaya maggot Black Soldier Fly untuk mengurangi sampah dan menghasilkan pakan alternatif.",
-    image_url: "/PAMAN.png", // Contoh gambar maggot
-    video_url: "https://www.youtube.com/watch?v=your-video-id-4",
-    langkah_langkah: [
-      "Siapkan media",
-      "Pindahkan telur/larva",
-      "Pemberian pakan",
-      "Panen maggot",
-    ],
-    category: "limbah_organik",
-    created_at: "2025-06-10T14:00:00Z",
-    views_count: 1500, // Paling populer dummy
-  },
-];
+export interface Materi {
+  id: string;
+  judul: string;
+  description: string;
+  image_url?: string;
+  video_url?: string;
+  langkah_langkah: string[];
+  uploader_id?: string;
+  category: string; // id kategori
+  created_at: string;
+  views_count?: number;
+}
+
+interface Category {
+  id: string;
+  judul: string;
+}
 
 const MateriPopulerSection: React.FC = () => {
-  // Urutkan dummy data berdasarkan views_count untuk simulasi "populer"
-  const sortedMateri = [...dummyMateriPopuler].sort(
-    (a, b) => (b.views_count || 0) - (a.views_count || 0)
-  );
+  const [materiList, setMateriList] = useState<Materi[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      const [materiResult, kategoriResult] = await Promise.all([
+        getPopularMateriAction(4),
+        getAllCategoriesAction(),
+      ]);
+      if (
+        "popularMateriList" in materiResult &&
+        Array.isArray(materiResult.popularMateriList)
+      ) {
+        setMateriList(materiResult.popularMateriList);
+      } else {
+        setMateriList([]);
+      }
+      if (
+        "categories" in kategoriResult &&
+        Array.isArray(kategoriResult.categories)
+      ) {
+        setCategories(kategoriResult.categories);
+      } else {
+        setCategories([]);
+      }
+      setLoading(false);
+    };
+    fetchData();
+  }, []);
+
+  // Helper untuk dapatkan nama kategori dari id
+  const getCategoryName = (id: string) => {
+    const cat = categories.find((c) => c.id === id);
+    return cat ? cat.judul : id;
+  };
 
   return (
     <section className="py-12 bg-gray-50">
@@ -95,18 +72,30 @@ const MateriPopulerSection: React.FC = () => {
               variant="outline"
               className="text-blue-600 border-blue-200 hover:bg-blue-50"
             >
-              Lihat Semua Materi
+              Lihat Semua Kategori
             </Button>
           </Link>
         </div>
-
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {sortedMateri.slice(0, 4).map(
-            (
-              materi // Tampilkan 4 materi teratas
-            ) => (
-              <MateriCard key={materi.id} materi={materi} />
-            )
+          {loading ? (
+            <div className="col-span-4 text-center text-gray-500">
+              Memuat materi populer...
+            </div>
+          ) : materiList.length === 0 ? (
+            <div className="col-span-4 text-center text-gray-500">
+              Belum ada materi populer.
+            </div>
+          ) : (
+            materiList.map((materi) => (
+              <Link key={materi.id} href={`/materi-details/${materi.id}`}>
+                <MateriCard
+                  materi={{
+                    ...materi,
+                    category: getCategoryName(materi.category), // Kirim nama kategori
+                  }}
+                />
+              </Link>
+            ))
           )}
         </div>
       </div>
