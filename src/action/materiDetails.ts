@@ -1,10 +1,13 @@
 "use server";
 import { createClient } from "@/auth/server";
 import { handleError } from "@/lib/utils";
-import { materiDetailsSchema, materiSchema } from "@/schema/materiDetailsSchema";
+import { materiSchema } from "@/schema/materiDetailsSchema";
 
-// Tipe peran pengguna harus konsisten dengan ENUM di Supabase
-export type UserRole = "petani" | "pengolah" | "pembeli" | "admin_komunitas" | "super_admin";
+export type UserRole =
+  | "user"
+  | "admin_komunitas"
+  | "admin_pemerintah"
+  | "super_admin";
 
 // --- Fungsi Helper untuk Memeriksa Role Pengguna ---
 const checkRequiredRole = async (
@@ -24,7 +27,7 @@ const checkRequiredRole = async (
 
   // Ambil role user dari tabel 'User'
   const { data: userData, error: userError } = await supabase
-    .from("User") // Ganti sesuai nama tabel user Anda
+    .from("User")
     .select("role")
     .eq("id", userId)
     .single();
@@ -34,13 +37,17 @@ const checkRequiredRole = async (
   }
 
   if (userData.role !== requiredRole) {
-    throw new Error(`Kamu tidak memiliki izin untuk melakukan aksi ini. Diperlukan peran: ${requiredRole}.`);
+    throw new Error(
+      `Kamu tidak memiliki izin untuk melakukan aksi ini. Diperlukan peran: ${requiredRole}.`
+    );
   }
 
   return userId;
 };
 
 // --- 1. CREATE MATERI ACTION ---
+// ...existing import & helper...
+
 export const createMateriAction = async (formData: FormData) => {
   try {
     const supabase = await createClient();
@@ -54,15 +61,14 @@ export const createMateriAction = async (formData: FormData) => {
     const imageUrl = formData.get("imageUrl") as string | undefined;
     const videoUrl = formData.get("videoUrl") as string | undefined;
     const category = formData.get("category") as string;
-    const stepString = formData.get("step") as string;
-    let step: string[] = [];
-    try {
-      step = JSON.parse(stepString);
-      if (!Array.isArray(step) || !step.every(s => typeof s === "string")) {
-        throw new Error("Format langkah-langkah tidak valid.");
-      }
-    } catch (e) {
-      throw new Error("Format langkah-langkah tidak valid. Harap masukkan array teks yang valid.");
+    const langkah_langkah = formData.getAll("langkah_langkah") as string[];
+
+    // Validasi array langkah_langkah
+    if (
+      !Array.isArray(langkah_langkah) ||
+      !langkah_langkah.every((s) => typeof s === "string")
+    ) {
+      throw new Error("Format langkah-langkah tidak valid.");
     }
 
     // Validasi input dengan Zod Schema
@@ -71,7 +77,7 @@ export const createMateriAction = async (formData: FormData) => {
       description,
       image_url: imageUrl,
       video_url: videoUrl,
-      step,
+      step: langkah_langkah,
     });
 
     if (!validationResult.success) {
@@ -85,9 +91,9 @@ export const createMateriAction = async (formData: FormData) => {
       description: validationResult.data.description,
       image_url: validationResult.data.image_url,
       video_url: validationResult.data.video_url,
-      langkah_langkah: validationResult.data.step,
+      langkah_langkah: validationResult.data.step, // array of string
       uploader_id: uploaderId,
-      category: category,
+      category,
     });
 
     if (materiInsertError) {
@@ -142,10 +148,7 @@ export const getAllMateriAction = async () => {
 };
 
 // --- 4. UPDATE MATERI ACTION ---
-export const updateMateriAction = async (
-  id: string,
-  formData: FormData
-) => {
+export const updateMateriAction = async (id: string, formData: FormData) => {
   try {
     const supabase = await createClient();
 
@@ -155,20 +158,22 @@ export const updateMateriAction = async (
     // Ambil data dari FormData
     const judul = formData.get("judul") as string | undefined;
     const description = formData.get("description") as string | undefined;
-    const imageUrl = formData.get("imageUrl") as string | undefined;
-    const videoUrl = formData.get("videoUrl") as string | undefined;
-    const category = formData.get("category") as string | undefined;
-    const stepString = formData.get("step") as string | undefined;
+    const imageUrl = formData.get("image_url") as string | undefined;
+    const videoUrl = formData.get("video_url") as string | undefined;
+    const category = formData.get("category") as string | undefined; // sesuai field di tabel Materi
+    const stepString = formData.get("langkah_langkah") as string | undefined;
 
     let step: string[] | undefined;
     if (stepString !== undefined) {
       try {
         step = JSON.parse(stepString);
-        if (!Array.isArray(step) || !step.every(s => typeof s === "string")) {
+        if (!Array.isArray(step) || !step.every((s) => typeof s === "string")) {
           throw new Error("Format langkah-langkah tidak valid.");
         }
-      } catch (e) {
-        throw new Error("Format langkah-langkah tidak valid. Harap masukkan array teks yang valid.");
+      } catch {
+        throw new Error(
+          "Format langkah-langkah tidak valid. Harap masukkan array teks yang valid."
+        );
       }
     }
 
@@ -187,7 +192,7 @@ export const updateMateriAction = async (
     }
 
     // Buat objek untuk di-update ke DB
-    const dataToUpdate: any = {
+    const dataToUpdate: Record<string, unknown> = {
       ...validationResult.data,
       ...(step !== undefined && { langkah_langkah: step }),
       ...(category && { category }),
@@ -229,5 +234,76 @@ export const deleteMateriAction = async (id: string) => {
     return { success: true, errorMessage: null };
   } catch (error) {
     return handleError(error);
+  }
+};
+
+export const incrementMateriViewCountAction = async (materiId: string) => {
+  try {
+    const supabase = await createClient();
+
+    // 1. Ambil views_count saat ini
+    const { data, error: selectError } = await supabase
+      .from("Materi")
+      .select("views_count")
+      .eq("id", materiId)
+      .single();
+
+    if (selectError) {
+      // Jika materi tidak ditemukan atau ada error select, log dan keluar tanpa increment
+      console.error(
+        "Error selecting views_count for materiId:",
+        materiId,
+        selectError
+      );
+      throw new Error(
+        `Gagal mengambil data views_count materi: ${selectError.message}`
+      );
+    }
+
+    // Pastikan views_count adalah angka, default 0 jika null/undefined
+    const currentViews = data?.views_count || 0;
+    const newViews = currentViews + 1;
+
+    // 2. Update views_count dengan nilai yang baru
+    const { error: updateError } = await supabase
+      .from("Materi")
+      .update({ views_count: newViews })
+      .eq("id", materiId);
+
+    if (updateError) {
+      console.error(
+        "Error updating view count for materiId:",
+        materiId,
+        updateError
+      );
+      throw new Error(
+        `Gagal memperbarui views_count materi: ${updateError.message}`
+      );
+    }
+
+    return { success: true, errorMessage: null };
+  } catch (error) {
+    // Tangani error dan kembalikan format yang konsisten
+    return handleError(error);
+  }
+};
+
+export const getPopularMateriAction = async (limit: number = 4) => {
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("Materi")
+      .select("*")
+      .order("views_count", { ascending: false }) // urutkan dari terbanyak
+      .limit(limit);
+
+    if (error) {
+      return { errorMessage: error.message };
+    }
+    return { popularMateriList: data, errorMessage: null };
+  } catch (error: any) {
+    return {
+      errorMessage: error.message || "Gagal mengambil data materi populer",
+    };
   }
 };

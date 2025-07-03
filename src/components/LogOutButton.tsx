@@ -28,7 +28,7 @@ const LogOutButton = () => {
       variant="outline"
       onClick={handleLogOut}
       disabled={loading}
-      className=" w-24"
+      className=" w-24 bg-transparent"
     >
       {loading ? <Loader2 className="animate-spin" /> : "Logout"}
     </Button>

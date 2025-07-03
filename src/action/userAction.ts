@@ -1,10 +1,13 @@
+// userAction.ts
 "use server";
 import { createClient } from "@/auth/server";
 import { handleError } from "@/lib/utils";
-import { userSchema } from "@/schema/userSchema";
-import { updatePasswordSchema } from "@/schema/userSchema";
+import { userSchema } from "@/schema/userSchema"; // Pastikan path dan skema ini benar
+import { updatePasswordSchema } from "@/schema/userSchema"; // Pastikan path dan skema ini benar
 
-export type UserRole = "petani" | "pengolah" | "pembeli" | "admin komunitas";
+// --- FINAL UserRole Type ---
+// Pastikan ini SAMA PERSIS dengan ENUM di Supabase Anda
+export type UserRole = "user" | "admin_komunitas" | "admin_pemerintah" | "super_admin";
 
 export const loginAction = async (email: string, password: string) => {
   try {
@@ -19,13 +22,14 @@ export const loginAction = async (email: string, password: string) => {
       }
       throw error;
     }
+
     const userId = data.user?.id;
     if (!userId) {
       throw new Error("Gagal mendapatkan ID pengguna setelah login.");
     }
 
     const { data: userProfile, error: profileError } = await supabase
-      .from("User ")
+      .from("User")
       .select("role")
       .eq("id", userId)
       .single();
@@ -44,29 +48,31 @@ export const loginAction = async (email: string, password: string) => {
     console.log("User role (dari Supabase Auth):", data.user?.role);
     console.log("User role (dari tabel User):", userProfile.role);
 
-    return { errorMessage: null, userRole: userProfile.role };
+    return { errorMessage: null, userRole: userProfile.role as UserRole };
   } catch (error) {
     return handleError(error);
   }
 };
 
+// --- PERUBAHAN DI SINI: Tambahkan 'location' sebagai parameter ---
 export const signUpAction = async (
   fullName: string,
   email: string,
   password: string,
   confirmPassword: string,
-  role: UserRole,
-  location: string
+  location: string // <-- Tambahkan parameter lokasi
 ) => {
   try {
-    userSchema.parse({ fullName, email, password });
+    // Pastikan userSchema Anda sudah mencakup validasi untuk fullName, email, password, dan mungkin location jika diperlukan
+    userSchema.parse({ fullName, email, password, location });
 
     if (password !== confirmPassword) {
-      throw new Error("Password dan konfirmasi password tidak sama");
+      throw new Error("Password dan konfirmasi password tidak sama.");
     }
 
     const supabase = await createClient();
 
+    // 1. Buat user di Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
@@ -78,12 +84,13 @@ export const signUpAction = async (
       throw new Error("Gagal mendapatkan ID pengguna setelah pendaftaran.");
     }
 
-    const { error: profileError } = await supabase.from("User ").insert({
+    // 2. Tambahkan profil ke tabel 'User' dengan default role dan lokasi yang diberikan
+    const { error: profileError } = await supabase.from("User").insert({
       id: userId,
       user_name: fullName,
       user_email: email,
-      role, // Ini adalah tempat `UserRole` kustom Anda disimpan
-      location,
+      role: "user", // Default role untuk pendaftaran
+      location: location, // <-- Masukkan lokasi yang diberikan
     });
 
     if (profileError) {
@@ -98,6 +105,7 @@ export const signUpAction = async (
     return handleError(error);
   }
 };
+// --- AKHIR PERUBAHAN ---
 
 export const logoutAction = async () => {
   try {

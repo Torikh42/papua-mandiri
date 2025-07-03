@@ -4,6 +4,7 @@ import "@/styles/globals.css";
 import { Toaster } from "sonner"; // Tambahkan ini
 import Navbar from "@/components/Navbar";
 import { getUser } from "@/auth/server";
+import Footer from "@/components/Footer";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -36,6 +37,7 @@ export default async function RootLayout({
         <Navbar user={user} />
         <Toaster /> {/* Tambahkan ini agar toast bisa digunakan */}
         {children}
+        <Footer />
       </body>
     </html>
   );

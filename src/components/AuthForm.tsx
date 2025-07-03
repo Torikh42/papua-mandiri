@@ -1,15 +1,15 @@
-// AuthForm.tsx
+// components/AuthForm.tsx
 "use client";
 import { useRouter } from "next/navigation";
 import React, { useTransition } from "react";
 import { toast } from "sonner";
 import { CardContent, CardFooter } from "./ui/card";
 import { Label } from "./ui/label";
-import { Input } from "./ui/input"; // Typo here, should be from "./ui/input"
+import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import { Loader2 } from "lucide-react";
 import Link from "next/link";
-import { loginAction, signUpAction, UserRole } from "@/action/userAction";
+import { loginAction, signUpAction } from "@/action/userAction";
 
 type Props = {
   type: "login" | "sign up";
@@ -32,23 +32,24 @@ const AuthForm = ({ type }: Props) => {
       } else {
         const fullName = FormData.get("fullName") as string;
         const confirmPassword = FormData.get("confirmPassword") as string;
-        const role = FormData.get("role") as UserRole;
-        const location = FormData.get("location") as string;
+        const location = FormData.get("location") as string; // <-- Ambil nilai lokasi
+
+        // --- PERUBAHAN DI SINI: Panggilan signUpAction dengan 'location' ---
         result = await signUpAction(
           fullName,
           email,
           password,
           confirmPassword,
-          role,
-          location
+          location // <-- Teruskan lokasi
         );
+        // --- AKHIR PERUBAHAN ---
       }
 
       if (!result.errorMessage) {
         toast.success(
           isLoginForm
-            ? "You have successfully logged in."
-            : "You have successfully signed up."
+            ? "Anda berhasil masuk."
+            : "Anda berhasil mendaftar."
         );
         router.replace("/");
       } else {
@@ -56,8 +57,8 @@ const AuthForm = ({ type }: Props) => {
         toast.error(
           result.errorMessage ||
             (isLoginForm
-              ? "An error occurred while logging in."
-              : "An error occurred while signing up.")
+              ? "Terjadi kesalahan saat masuk."
+              : "Terjadi kesalahan saat mendaftar.")
         );
       }
     });
@@ -70,46 +71,29 @@ const AuthForm = ({ type }: Props) => {
         {!isLoginForm && (
           <>
             <div className="flex flex-col space-y-1.5">
-              <Label htmlFor="fullName">Full Name</Label>
+              <Label htmlFor="fullName">Nama Lengkap</Label>
               <Input
                 id="fullName"
                 name="fullName"
-                placeholder="Enter your full name"
+                placeholder="Masukkan nama lengkap Anda"
                 type="text"
                 required
-                disabled={isPending} // Tetap disabled saat loading
+                disabled={isPending}
               />
             </div>
+            {/* --- PERUBAHAN DI SINI: Tambahkan input location --- */}
             <div className="flex flex-col space-y-1.5">
-              <Label htmlFor="role">Role</Label>
-              <select
-                id="role"
-                name="role"
-                required
-                disabled={isPending} // Tetap disabled saat loading
-                className="border rounded px-2 py-1"
-                defaultValue=""
-              >
-                <option value="" disabled>
-                  Select role
-                </option>
-                <option value="petani">petani</option>
-                <option value="pengolah">pengolah</option>
-                <option value="pembeli">pembeli</option>
-                <option value="admin_komunitas">admin komunitas</option>
-              </select>
-            </div>
-            <div className="flex flex-col space-y-1.5">
-              <Label htmlFor="location">Location</Label>
+              <Label htmlFor="location">Lokasi</Label>
               <Input
                 id="location"
                 name="location"
-                placeholder="Enter your location"
+                placeholder="Masukkan lokasi Anda (contoh: Cibinong, Jawa Barat)"
                 type="text"
                 required
-                disabled={isPending} // Tetap disabled saat loading
+                disabled={isPending}
               />
             </div>
+            {/* --- AKHIR PERUBAHAN --- */}
           </>
         )}
         {/* Input email dan password SELALU tampil */}
@@ -118,10 +102,10 @@ const AuthForm = ({ type }: Props) => {
           <Input
             id="email"
             name="email"
-            placeholder="Enter your email"
+            placeholder="Masukkan email Anda"
             type="email"
             required
-            disabled={isPending} // Tetap disabled saat loading
+            disabled={isPending}
           />
         </div>
         <div className="flex flex-col space-y-1.5">
@@ -129,56 +113,55 @@ const AuthForm = ({ type }: Props) => {
           <Input
             id="password"
             name="password"
-            placeholder="Enter your password"
+            placeholder="Masukkan password Anda"
             type="password"
             required
-            disabled={isPending} // Tetap disabled saat loading
+            disabled={isPending}
           />
         </div>
         {/* Confirm Password hanya saat sign up, tepat di bawah password */}
         {!isLoginForm && (
           <div className="flex flex-col space-y-1.5">
-            <Label htmlFor="confirmPassword">Confirm Password</Label>
+            <Label htmlFor="confirmPassword">Konfirmasi Password</Label>
             <Input
               id="confirmPassword"
               name="confirmPassword"
-              placeholder="Confirm your password"
+              placeholder="Konfirmasi password Anda"
               type="password"
               required
-              disabled={isPending} // Tetap disabled saat loading
+              disabled={isPending}
             />
           </div>
         )}
       </CardContent>
       <CardFooter className="mt-4 flex flex-col gap-6">
-        <Button className="w-full" disabled={isPending}> {/* <-- disabled hanya di tombol */}
+        <Button className="w-full" disabled={isPending}>
           {isPending ? (
             <Loader2 className="animate-spin" />
           ) : isLoginForm ? (
             "Login"
           ) : (
-            "Sign Up"
+            "Daftar"
           )}
         </Button>
-        {/* Tombol "Forgot Password" hanya muncul di form login */}
         {isLoginForm && (
           <Link
             href="/forgot-password"
-            className="text-sm text-blue-500 hover:underline" // <-- Hapus kondisi isPending di sini
+            className="text-sm text-blue-500 hover:underline"
           >
-            Forgot password?
+            Lupa password?
           </Link>
         )}
 
         <p className="text-xs">
-          {isLoginForm ? "Don't have an account?" : "Already have an account?"}{" "}
+          {isLoginForm ? "Belum punya akun?" : "Sudah punya akun?"}{" "}
           <Link
             href={isLoginForm ? "/sign-up" : "/login"}
             className={`text-blue-500 ${
-              isPending ? "pointer-events-none opacity-50" : "" // <-- Biarkan ini jika Anda ingin menonaktifkan link Sign Up/Login saat isPending
+              isPending ? "pointer-events-none opacity-50" : ""
             }`}
           >
-            {isLoginForm ? "Sign Up" : "Login"}
+            {isLoginForm ? "Daftar" : "Login"}
           </Link>
         </p>
       </CardFooter>

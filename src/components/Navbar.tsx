@@ -1,4 +1,4 @@
-// Header.tsx (Navbar.tsx)
+// components/Navbar.tsx
 "use client";
 
 import React, { useState } from "react";
@@ -7,22 +7,34 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
-import LogOutButton from "./LogOutButton";
+import LogOutButton from "./LogOutButton"; // Pastikan komponen ini ada dan berfungsi
 
-const navItems = [
+const navItemsNotLoggedIn = [
   { href: "/", label: "Home" },
-  { href: "/materi", label: "Materi" },
+  { href: "/kategori-materi", label: "Kategori" },
+  { href: "/faq", label: "FAQ" },
 ];
 
-type User = {
-  id?: string;
-  email?: string;
-  name?: string; // Ini sekarang datang dari profile.user_name
-  // PERBAIKAN: Gunakan tipe role yang konsisten
-  role?: "petani" | "pengolah" | "pembeli" | "admin_komunitas" | "super_admin" | null; 
-} | null;
+const navItemsLoggedIn = [
+  { href: "/", label: "Home" },
+  { href: "/kategori-materi", label: "Kategori" },
+  { href: "/paman-ai", label: "Paman AI" },
+  { href: "/faq", label: "FAQ" },
+];
 
-export default function Navbar({ user }: { user?: User }) {
+
+export type UserRole = "user" | "admin_komunitas" | "admin_pemerintah" | "super_admin";
+
+// Type 'User' harus sama persis dengan 'UserData' dari 'auth/server.ts'
+type User = {
+  id: string; // Tidak opsional
+  email: string | null; // string | null
+  name: string | null; // string | null
+  role: UserRole | "unknown"; // Peran, atau "unknown" sebagai fallback
+} | null; // Seluruh objek User bisa null
+// --- AKHIR PERBAIKAN ---
+
+export default function Navbar({ user }: { user: User }) { // <-- Ubah 'user?: User' menjadi 'user: User'
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
 
@@ -31,55 +43,56 @@ export default function Navbar({ user }: { user?: User }) {
     return pathname.startsWith(href);
   };
 
-  let dashboardHref = "/dashboard"; // Default
-  // PERBAIKAN: Konsistensi nama role.
+  let dashboardHref = "/dashboard";
+  // --- PERBAIKAN: Konsistensi nama role ---
   // Ganti "admin komunitas" dengan "admin_komunitas"
-  if (user?.role === "admin_komunitas" || user?.role === "super_admin") {
-      dashboardHref = "/dashboard-admin";
-  } else if (user?.role === "petani" || user?.role === "pengolah") {
-      dashboardHref = "/dashboard-user";
-  } else if (user?.role === "pembeli") {
-      dashboardHref = "/dashboard-pembeli";
+  if (user?.role === "admin_komunitas") {
+    dashboardHref = "/dashboard-admin-komunitas";
+  } else if (user?.role === "admin_pemerintah") {
+    dashboardHref = "/dashboard-admin-pemerintah";
+  } else if (user?.role === "super_admin") {
+    dashboardHref = "/dashboard-superadmin";
+  } else if (user?.role === "user") {
+    dashboardHref = "/dashboard-user";
   }
 
-  // firstName akan diambil dari user?.name yang sudah datang dari profile.user_name
   const firstName = user?.name ? user.name.split(" ")[0] : null;
 
+  const currentNavItems = user ? navItemsLoggedIn : navItemsNotLoggedIn;
+
   return (
-    <header className="sticky top-0 z-50 border-b border-gray-100 bg-white shadow-lg">
+    <header className="bg-gradient-to-r from-green-400 to-blue-300 text-white py-1 px-2 sm:px-3">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
         <Link
           className="flex flex-shrink-0 items-center gap-2 sm:gap-3"
           href="/"
         >
           <Image
-            src="/file.svg"
+            src="/PAMAN.png"
             height={40}
-            width={40}
-            alt="logo"
+            width={50}
+            alt="Paman Logo"
             priority
             className="sm:h-[50px] sm:w-[50px]"
           />
           <div className="min-w-0 flex-1">
-            <h1 className="text-sm leading-tight font-bold text-green-500 sm:text-lg lg:text-xl">
-              PAMAN <span className="text-blue-400"></span>
+            <h1 className="text-sm leading-tight font-bold text-white sm:text-lg lg:text-xl">
+              Paman
             </h1>
-            <span className="hidden text-xs text-gray-500 sm:block">
-              PAPUA MANDIRI
+            <span className="hidden text-xs text-white sm:block">
+              Papua Mandiri
             </span>
           </div>
         </Link>
 
         <nav className="hidden items-center gap-2 md:flex">
-          {navItems.map((item) => (
+          {currentNavItems.map((item) => (
             <Button
               asChild
               key={item.href}
-              variant={isActive(item.href) ? "default" : "ghost"}
-              className={`transition-all duration-200 ${
-                isActive(item.href)
-                  ? "bg-blue-500 text-white hover:bg-blue-600"
-                  : "text-gray-700 hover:bg-blue-50 hover:text-blue-600"
+              variant="link"
+              className={`text-white hover:text-blue-200 text-base font-semibold ${
+                isActive(item.href) ? "underline" : ""
               }`}
             >
               <Link href={item.href}>{item.label}</Link>
@@ -90,39 +103,26 @@ export default function Navbar({ user }: { user?: User }) {
         <div className="hidden flex-shrink-0 items-center gap-2 md:flex">
           {user ? (
             <>
-              <div className="flex items-center gap-2">
-                {firstName && (
-                  <span className="hidden text-sm font-semibold text-gray-700 sm:block">
-                    Hey, {firstName}!
-                  </span>
-                )}
-                {user.role && (
-                  <Button
-                    asChild
-                    variant={isActive(dashboardHref) ? "default" : "ghost"}
-                    className={`transition-all duration-200 ${
-                      isActive(dashboardHref)
-                        ? "bg-blue-500 text-white hover:bg-blue-600"
-                        : "text-gray-700 hover:bg-blue-50 hover:text-blue-600"
-                    }`}
-                  >
-                    <Link href={dashboardHref}>Dashboard</Link>
-                  </Button>
-                )}
-              </div>
+              {firstName && (
+                <span className="text-sm font-semibold text-white">
+                  Hey, {firstName}!
+                </span>
+              )}
+              {/* user.role tidak akan pernah 'unknown' jika user ada dan berasal dari DB */}
+              {user.role && user.role !== "user" && user.role !== "unknown" && (
+                <Button asChild variant="secondary" className="bg-white text-blue-500 hover:bg-gray-100">
+                  <Link href={dashboardHref}>Dashboard</Link>
+                </Button>
+              )}
               <LogOutButton />
             </>
           ) : (
             <>
-              <Button
-                asChild
-                variant="outline"
-                className="border-blue-200 text-blue-600 hover:bg-blue-50"
-              >
-                <Link href="/sign-up">Sign Up</Link>
-              </Button>
-              <Button asChild className="bg-blue-500 hover:bg-blue-600">
+              <Button asChild variant="outline" className="bg-transparent border-white text-white hover:bg-white hover:text-blue-500">
                 <Link href="/login">Login</Link>
+              </Button>
+              <Button asChild className="bg-white text-blue-500 hover:bg-gray-100">
+                <Link href="/sign-up">Sign Up</Link>
               </Button>
             </>
           )}
@@ -133,7 +133,7 @@ export default function Navbar({ user }: { user?: User }) {
             variant="ghost"
             size="sm"
             onClick={() => setMobileOpen((v) => !v)}
-            className="p-2"
+            className="p-2 text-white"
             aria-label="Toggle menu"
           >
             {mobileOpen ? (
@@ -146,17 +146,15 @@ export default function Navbar({ user }: { user?: User }) {
       </div>
 
       {mobileOpen && (
-        <div className="border-t border-gray-100 bg-white shadow-lg md:hidden">
+        <div className="bg-gradient-to-r from-green-700 to-blue-300 text-white py-1 px-2 sm:px-3">
           <nav className="flex flex-col gap-1 px-4 py-3">
-            {navItems.map((item) => (
+            {currentNavItems.map((item) => (
               <Button
                 asChild
                 key={item.href}
-                variant={isActive(item.href) ? "default" : "ghost"}
-                className={`w-full justify-start transition-all duration-200 ${
-                  isActive(item.href)
-                    ? "bg-blue-500 text-white"
-                    : "text-gray-700 hover:bg-blue-50 hover:text-blue-600"
+                variant="ghost"
+                className={`w-full justify-start transition-all duration-200 text-white hover:bg-white hover:text-blue-500 ${
+                  isActive(item.href) ? "bg-white/20" : ""
                 }`}
                 onClick={() => setMobileOpen(false)}
               >
@@ -166,14 +164,12 @@ export default function Navbar({ user }: { user?: User }) {
             <div className="flex flex-col gap-2 border-t border-gray-200 pt-2">
               {user ? (
                 <>
-                  {user.role && (
+                  {user.role && user.role !== "user" && user.role !== "unknown" && (
                     <Button
                       asChild
-                      variant={isActive(dashboardHref) ? "default" : "ghost"}
-                      className={`w-full justify-start transition-all duration-200 ${
-                        isActive(dashboardHref)
-                          ? "bg-blue-500 text-white"
-                          : "text-gray-700 hover:bg-blue-50 hover:text-blue-600"
+                      variant="ghost"
+                      className={`w-full justify-start transition-all duration-200 text-white hover:bg-white hover:text-blue-500 ${
+                        isActive(dashboardHref) ? "bg-white/20" : ""
                       }`}
                       onClick={() => setMobileOpen(false)}
                     >
@@ -181,7 +177,7 @@ export default function Navbar({ user }: { user?: User }) {
                     </Button>
                   )}
                   <div onClick={() => setMobileOpen(false)}>
-                    <LogOutButton />
+                    <LogOutButton/>
                   </div>
                 </>
               ) : (
@@ -189,14 +185,15 @@ export default function Navbar({ user }: { user?: User }) {
                   <Button
                     asChild
                     variant="outline"
-                    className="w-full border-blue-200 text-blue-600 hover:bg-blue-50"
+                    className="w-full bg-white text-blue-500 hover:bg-gray-100"
                     onClick={() => setMobileOpen(false)}
                   >
                     <Link href="/sign-up">Sign Up</Link>
                   </Button>
                   <Button
                     asChild
-                    className="w-full bg-blue-500 hover:bg-blue-600"
+                    variant="outline"
+                    className="w-full bg-white text-blue-500 hover:bg-gray-100"
                     onClick={() => setMobileOpen(false)}
                   >
                     <Link href="/login">Login</Link>
