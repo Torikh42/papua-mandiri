@@ -1,56 +1,174 @@
 // app/materi/page.tsx
-import React from 'react';
-import { getAllMateriAction } from '@/action/materiDetails'; // Import Server Action untuk mengambil semua materi
-import MateriCard, { Materi } from '@/components/KategoriCard'; // Import komponen MateriCard dan interface Materi
-import { Button } from '@/components/ui/button'; // Import Button dari Shadcn UI
-import Link from 'next/link'; // Import Link dari Next.js
-import { getUser } from '@/auth/server'; // Import getUser untuk cek role admin
+"use client"
 
-// Ini adalah Server Component, sehingga data diambil di server
-export default async function MateriListPage() {
-  // Panggil Server Action untuk mengambil semua materi dari database
-  // Materi akan otomatis di-join dengan nama kategori karena konfigurasi di materiAction.ts
-  const result = await getAllMateriAction();
-  const errorMessage = result.errorMessage;
-  const materiList = 'materiList' in result ? result.materiList : undefined;
+import React, { useState, useEffect } from 'react';
+import { getAllMateriAction } from '@/action/materiDetails';
+import MateriCard, { Materi } from '@/components/MateriCard';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
+import { getUser } from '@/auth/server';
+import SearchMateri from '@/components/SearchMateri';
+import FilterMateriByCategory from '@/components/FilterMateriByCategory';
 
-  // Dapatkan informasi user yang sedang login untuk mengecek role admin
-  const currentUser = await getUser();
-  const isSuperAdmin = currentUser?.role === "super_admin";
+export default function MateriListPage() {
+  const [materiList, setMateriList] = useState<Materi[]>([]);
+  const [filteredMateri, setFilteredMateri] = useState<Materi[]>([]);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        
+        // Fetch all materi with category info
+        const result = await getAllMateriAction();
+        if (result.errorMessage) {
+          setErrorMessage(result.errorMessage);
+        } else if (result.materiList) {
+          setMateriList(result.materiList);
+          setFilteredMateri(result.materiList);
+        }
+
+        // Check user role
+        const currentUser = await getUser();
+        setIsSuperAdmin(currentUser?.role === "super_admin");
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        setErrorMessage("Terjadi kesalahan saat memuat data");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  // Function to apply both search and category filters
+  const applyFilters = () => {
+    let filtered = materiList;
+
+    // Apply category filter first
+    if (selectedCategory) {
+      filtered = filtered.filter(materi => materi.category === selectedCategory);
+    }
+
+    // If there's an active search, use search results instead
+    if (isSearching && searchResults.length > 0) {
+      const searchResultsConverted = searchResults.map(item => ({
+        id: item.id,
+        judul: item.judul,
+        description: item.description,
+        category: item.category,
+        image_url: item.image_url,
+        video_url: item.video_url,
+        langkah_langkah: item.langkah_langkah,
+        uploader_id: item.uploader_id,
+        created_at: item.created_at,
+        // Add other required properties from your Materi interface
+      })) as Materi[];
+
+      // Apply category filter to search results if category is selected
+      if (selectedCategory) {
+        filtered = searchResultsConverted.filter(materi => materi.category === selectedCategory);
+      } else {
+        filtered = searchResultsConverted;
+      }
+    }
+
+    setFilteredMateri(filtered);
+  };
+
+  // Apply filters whenever materiList, selectedCategory, or searchResults change
+  useEffect(() => {
+    applyFilters();
+  }, [materiList, selectedCategory, searchResults, isSearching]);
+
+  const handleSearchResults = (results: any[]) => {
+    setSearchResults(results);
+    if (results.length === 0) {
+      setIsSearching(false);
+    } else {
+      setIsSearching(true);
+    }
+  };
+
+  const handleCategoryFilter = (categoryId: string | null) => {
+    setSelectedCategory(categoryId);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto py-8 px-4 sm:px-6">
+        <div className="text-center py-10">
+          <p className="text-xl">Memuat materi...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto py-8 px-4 sm:px-6">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold text-gray-800">Daftar Materi Edukasi</h1>
-        {isSuperAdmin && ( // Tampilkan tombol "+ Tambah Materi" hanya jika user adalah super_admin
-          <Link href="/dashboard-superadmin?tab=add-materi" passHref> {/* Arahkan ke tab add materi di dashboard admin */}
+        {isSuperAdmin && (
+          <Link href="/dashboard-superadmin?tab=add-materi" passHref>
             <Button>+ Tambah Materi</Button>
           </Link>
         )}
       </div>
 
-      {errorMessage ? ( // Tampilkan pesan error jika ada masalah saat memuat materi
+      <SearchMateri 
+        onResults={handleSearchResults} 
+        selectedCategory={selectedCategory}
+      />
+      
+      <FilterMateriByCategory 
+        onCategoryFilter={handleCategoryFilter}
+        selectedCategory={selectedCategory}
+      />
+
+      {errorMessage ? (
         <div className="text-center text-red-500 py-10">
           <p className="text-xl">Terjadi kesalahan saat memuat materi:</p>
           <p>{errorMessage}</p>
         </div>
-      ) : materiList && materiList.length > 0 ? ( // Jika materi ditemukan dan ada isinya
-        // Tampilkan materi dalam grid responsif
+      ) : filteredMateri && filteredMateri.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {materiList.map((materi: Materi) => ( // Mapping setiap objek materi ke komponen MateriCard
+          {filteredMateri.map((materi: Materi) => (
             <MateriCard key={materi.id} materi={materi} />
           ))}
         </div>
-      ) : ( // Jika tidak ada materi yang tersedia
+      ) : (
         <div className="text-center text-gray-500 py-10">
-          <p className="text-xl">Belum ada materi tersedia.</p>
-          {isSuperAdmin && ( // Berikan tautan untuk menambah materi jika user adalah super_admin
-            <p className="mt-2">Silakan {" "}
-              <Link href="/dashboard-superadmin?tab=add-materi" className="text-blue-500 hover:underline">
-                tambah materi baru
-              </Link>
-              .
-            </p>
+          {isSearching || selectedCategory ? (
+            <div>
+              <p className="text-xl">Tidak ada materi yang ditemukan.</p>
+              <p className="text-sm mt-2">
+                {isSearching && selectedCategory ? 
+                  "Coba ubah kata kunci pencarian atau pilih kategori yang berbeda." :
+                  isSearching ? 
+                  "Coba ubah kata kunci pencarian." :
+                  "Coba pilih kategori yang berbeda."
+                }
+              </p>
+            </div>
+          ) : (
+            <>
+              <p className="text-xl">Belum ada materi tersedia.</p>
+              {isSuperAdmin && (
+                <p className="mt-2">Silakan {" "}
+                  <Link href="/dashboard-superadmin?tab=add-materi" className="text-blue-500 hover:underline">
+                    tambah materi baru
+                  </Link>
+                  .
+                </p>
+              )}
+            </>
           )}
         </div>
       )}

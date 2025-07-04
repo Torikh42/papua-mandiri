@@ -1,5 +1,6 @@
 // components/AuthForm.tsx
 "use client";
+
 import { useRouter } from "next/navigation";
 import React, { useTransition } from "react";
 import { toast } from "sonner";
@@ -10,6 +11,7 @@ import { Button } from "./ui/button";
 import { Loader2 } from "lucide-react";
 import Link from "next/link";
 import { loginAction, signUpAction } from "@/action/userAction";
+import Image from "next/image";
 
 type Props = {
   type: "login" | "sign up";
@@ -32,30 +34,26 @@ const AuthForm = ({ type }: Props) => {
       } else {
         const fullName = FormData.get("fullName") as string;
         const confirmPassword = FormData.get("confirmPassword") as string;
-        const location = FormData.get("location") as string; // <-- Ambil nilai lokasi
+        const location = FormData.get("location") as string;
 
-        // --- PERUBAHAN DI SINI: Panggilan signUpAction dengan 'location' ---
         result = await signUpAction(
           fullName,
           email,
           password,
           confirmPassword,
-          location // <-- Teruskan lokasi
+          location
         );
-        // --- AKHIR PERUBAHAN ---
       }
 
-      if (!result.errorMessage) {
+      if (result && !result.errorMessage) {
         toast.success(
-          isLoginForm
-            ? "Anda berhasil masuk."
-            : "Anda berhasil mendaftar."
+          isLoginForm ? "Anda berhasil masuk." : "Anda berhasil mendaftar."
         );
         router.replace("/");
       } else {
-        console.error(result.errorMessage);
+        console.error(result?.errorMessage);
         toast.error(
-          result.errorMessage ||
+          result?.errorMessage ||
             (isLoginForm
               ? "Terjadi kesalahan saat masuk."
               : "Terjadi kesalahan saat mendaftar.")
@@ -64,14 +62,18 @@ const AuthForm = ({ type }: Props) => {
     });
   };
 
-  return (
-    <form action={handleSubmit}>
-      <CardContent className="grid w-full items-center gap-4">
+  // Kita kelompokkan semua input dan footer ke dalam satu variabel JSX
+  // agar mudah ditempatkan di dalam tata letak yang berbeda.
+  const formFieldsAndFooter = (
+    <>
+      <CardContent className="grid w-full items-center gap-5">
         {/* Input khusus sign up */}
         {!isLoginForm && (
           <>
             <div className="flex flex-col space-y-1.5">
-              <Label htmlFor="fullName">Nama Lengkap</Label>
+              <Label htmlFor="fullName" className=" text-green-700">
+                Nama Lengkap
+              </Label>
               <Input
                 id="fullName"
                 name="fullName"
@@ -81,9 +83,10 @@ const AuthForm = ({ type }: Props) => {
                 disabled={isPending}
               />
             </div>
-            {/* --- PERUBAHAN DI SINI: Tambahkan input location --- */}
             <div className="flex flex-col space-y-1.5">
-              <Label htmlFor="location">Lokasi</Label>
+              <Label htmlFor="location" className=" text-green-700">
+                Lokasi
+              </Label>
               <Input
                 id="location"
                 name="location"
@@ -93,12 +96,13 @@ const AuthForm = ({ type }: Props) => {
                 disabled={isPending}
               />
             </div>
-            {/* --- AKHIR PERUBAHAN --- */}
           </>
         )}
         {/* Input email dan password SELALU tampil */}
         <div className="flex flex-col space-y-1.5">
-          <Label htmlFor="email">Email</Label>
+          <Label htmlFor="email" className=" text-green-700">
+            Email
+          </Label>
           <Input
             id="email"
             name="email"
@@ -109,7 +113,9 @@ const AuthForm = ({ type }: Props) => {
           />
         </div>
         <div className="flex flex-col space-y-1.5">
-          <Label htmlFor="password">Password</Label>
+          <Label htmlFor="password" className=" text-green-700">
+            Password
+          </Label>
           <Input
             id="password"
             name="password"
@@ -119,10 +125,12 @@ const AuthForm = ({ type }: Props) => {
             disabled={isPending}
           />
         </div>
-        {/* Confirm Password hanya saat sign up, tepat di bawah password */}
+        {/* Confirm Password hanya saat sign up */}
         {!isLoginForm && (
           <div className="flex flex-col space-y-1.5">
-            <Label htmlFor="confirmPassword">Konfirmasi Password</Label>
+            <Label htmlFor="confirmPassword" className=" text-green-700">
+              Konfirmasi Password
+            </Label>
             <Input
               id="confirmPassword"
               name="confirmPassword"
@@ -135,7 +143,10 @@ const AuthForm = ({ type }: Props) => {
         )}
       </CardContent>
       <CardFooter className="mt-4 flex flex-col gap-6">
-        <Button className="w-full" disabled={isPending}>
+        <Button
+          className="w-full  bg-green-700 hover:bg-green-600"
+          disabled={isPending}
+        >
           {isPending ? (
             <Loader2 className="animate-spin" />
           ) : isLoginForm ? (
@@ -165,6 +176,44 @@ const AuthForm = ({ type }: Props) => {
           </Link>
         </p>
       </CardFooter>
+    </>
+  );
+
+  return (
+    <form action={handleSubmit}>
+      {isLoginForm ? (
+        // --- TATA LETAK UNTUK LOGIN ---
+        <>
+          <div className="p-6 pt-0">
+            <Image
+              src="https://res.cloudinary.com/dsw1iot8d/image/upload/v1719392211/Frame_98_zskkzk.png"
+              alt="Login Illustration"
+              width={250}
+              height={180}
+              className="mx-auto"
+              priority
+            />
+          </div>
+          {formFieldsAndFooter}
+        </>
+      ) : (
+        // --- TATA LETAK UNTUK SIGN UP ---
+        <div className="flex flex-col md:flex-row items-stretch">
+          {/* Kolom Kiri: Gambar (hanya tampil di layar medium ke atas) */}
+          <div className="hidden md:flex w-full md:w-2/5 items-center justify-center p-8 bg-gradient-to-br from-green-50 to-blue-50 rounded-l-lg">
+            <Image
+              src="https://res.cloudinary.com/dsw1iot8d/image/upload/v1719392193/Frame_100_wts108.png"
+              alt="Sign Up Illustration"
+              width={300}
+              height={450}
+              className="object-contain"
+              priority
+            />
+          </div>
+          {/* Kolom Kanan: Form */}
+          <div className="w-full md:w-3/5 p-2">{formFieldsAndFooter}</div>
+        </div>
+      )}
     </form>
   );
 };

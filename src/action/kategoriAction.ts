@@ -16,7 +16,7 @@ export const createCategoryAction = async (formData: FormData) => {
     // --- PERBAIKAN DI SINI ---
     // 1. Buat Supabase client terlebih dahulu
     const supabaseClient = await createClient();
-    const userId = await checkRequiredRole(supabaseClient, "super_admin");
+    await checkRequiredRole(supabaseClient, "super_admin");
 
     const judul = formData.get("judul") as string;
     const description = formData.get("description") as string | null;
@@ -68,7 +68,7 @@ export const getAllCategoriesAction = async () => {
 
     const { data, error } = await supabase
       .from("Kategori") // Pastikan nama tabel Anda "Kategori"
-      .select("id, judul") // Hanya ambil ID dan judul untuk dropdown/list
+      .select("id, judul, description") // Hanya ambil ID dan judul untuk dropdown/list
       .order("judul", { ascending: true }); // Urutkan berdasarkan judul
 
     if (error) {

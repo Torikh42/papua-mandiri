@@ -7,34 +7,33 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
-import LogOutButton from "./LogOutButton"; // Pastikan komponen ini ada dan berfungsi
+import LogOutButton from "./LogOutButton";
 
 const navItemsNotLoggedIn = [
   { href: "/", label: "Home" },
+  { href: "/materi", label: "Materi" },
   { href: "/kategori-materi", label: "Kategori" },
   { href: "/faq", label: "FAQ" },
 ];
 
 const navItemsLoggedIn = [
   { href: "/", label: "Home" },
+  { href: "/materi", label: "Materi" },
   { href: "/kategori-materi", label: "Kategori" },
   { href: "/paman-ai", label: "Paman AI" },
   { href: "/faq", label: "FAQ" },
 ];
 
-
 export type UserRole = "user" | "admin_komunitas" | "admin_pemerintah" | "super_admin";
 
-// Type 'User' harus sama persis dengan 'UserData' dari 'auth/server.ts'
 type User = {
-  id: string; // Tidak opsional
-  email: string | null; // string | null
-  name: string | null; // string | null
-  role: UserRole | "unknown"; // Peran, atau "unknown" sebagai fallback
-} | null; // Seluruh objek User bisa null
-// --- AKHIR PERBAIKAN ---
+  id: string;
+  email: string | null;
+  name: string | null;
+  role: UserRole | "unknown";
+} | null;
 
-export default function Navbar({ user }: { user: User }) { // <-- Ubah 'user?: User' menjadi 'user: User'
+export default function Navbar({ user }: { user: User }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
 
@@ -44,8 +43,6 @@ export default function Navbar({ user }: { user: User }) { // <-- Ubah 'user?: U
   };
 
   let dashboardHref = "/dashboard";
-  // --- PERBAIKAN: Konsistensi nama role ---
-  // Ganti "admin komunitas" dengan "admin_komunitas"
   if (user?.role === "admin_komunitas") {
     dashboardHref = "/dashboard-admin-komunitas";
   } else if (user?.role === "admin_pemerintah") {
@@ -108,8 +105,9 @@ export default function Navbar({ user }: { user: User }) { // <-- Ubah 'user?: U
                   Hey, {firstName}!
                 </span>
               )}
-              {/* user.role tidak akan pernah 'unknown' jika user ada dan berasal dari DB */}
-              {user.role && user.role !== "user" && user.role !== "unknown" && (
+              {/* --- PERBAIKAN DI SINI --- */}
+              {/* Menampilkan tombol Dashboard untuk SEMUA role yang valid (termasuk 'user') */}
+              {user.role && user.role !== "unknown" && (
                 <Button asChild variant="secondary" className="bg-white text-blue-500 hover:bg-gray-100">
                   <Link href={dashboardHref}>Dashboard</Link>
                 </Button>
@@ -146,7 +144,7 @@ export default function Navbar({ user }: { user: User }) { // <-- Ubah 'user?: U
       </div>
 
       {mobileOpen && (
-        <div className="bg-gradient-to-r from-green-700 to-blue-300 text-white py-1 px-2 sm:px-3">
+        <div className="bg-gradient-to-r from-green-400 to-blue-300 text-white py-1 px-2 sm:px-3">
           <nav className="flex flex-col gap-1 px-4 py-3">
             {currentNavItems.map((item) => (
               <Button
@@ -164,7 +162,8 @@ export default function Navbar({ user }: { user: User }) { // <-- Ubah 'user?: U
             <div className="flex flex-col gap-2 border-t border-gray-200 pt-2">
               {user ? (
                 <>
-                  {user.role && user.role !== "user" && user.role !== "unknown" && (
+                  {/* --- PERBAIKAN DI SINI (VERSI MOBILE) --- */}
+                  {user.role && user.role !== "unknown" && (
                     <Button
                       asChild
                       variant="ghost"

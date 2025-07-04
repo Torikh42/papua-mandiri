@@ -1,13 +1,15 @@
-import MateriPopulerSection from "@/components/MateriPopulerSection";
+// app/page.tsx
+import MateriPopulerSection from "@/components/MateriPopulerSection"; // Sesuaikan path jika berbeda
 import WelcomeCard from "@/components/WelcomeCard";
 import React from "react";
-import KategoriSdaSection from "@/components/KategoriSdaSection";
+// --- PERBAIKAN DI SINI ---
+// Import KategoriSection, BUKAN KategoriSdaCard secara langsung
+import KategoriSdaSection from "@/components/KategoriSdaSection"; // Sesuaikan path jika berbeda
+// --- AKHIR PERBAIKAN ---
 
 const Home = () => {
   return (
     <div className="flex flex-col gap-10 px-6 py-8">
-      {" "}
-      {/* spacing antar elemen */}
       <header></header>
       <WelcomeCard />
       <h2
@@ -23,7 +25,10 @@ const Home = () => {
       >
         Kategori Pengolahan SDA
       </h3>
+      {/* --- PERBAIKAN DI SINI --- */}
+      {/* Render KategoriSdaSection, yang akan mengambil dan menampilkan KategoriSdaCard secara benar */}
       <KategoriSdaSection />
+      {/* --- AKHIR PERBAIKAN --- */}
       <h4
         style={{ color: "#4C7A4F" }}
         className="text-2xl font-bold text-center"

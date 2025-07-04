@@ -129,19 +129,34 @@ export const getMateriByIdAction = async (id: string) => {
 };
 
 // --- 3. GET ALL MATERI ACTION ---
+/**
+ * @function getAllMateriAction
+ * @description Mengambil semua materi dengan data kategori
+ * @returns Daftar semua materi dengan informasi kategori
+ */
 export const getAllMateriAction = async () => {
   try {
     const supabase = await createClient();
+
     const { data, error } = await supabase
       .from("Materi")
-      .select("*")
-      .order("created_at", { ascending: false });
+      .select(
+        `
+        *,
+        Kategori!category (
+          id,
+          judul
+        )
+      `
+      )
+      .order("created_at", { ascending: false }); // Urutkan berdasarkan yang terbaru
 
     if (error) {
-      throw error;
+      console.error("Error fetching all materi:", error.message);
+      throw new Error(`Gagal memuat materi: ${error.message}`);
     }
 
-    return { materiList: data, errorMessage: null };
+    return { success: true, materiList: data || [], errorMessage: null };
   } catch (error) {
     return handleError(error);
   }
@@ -305,5 +320,73 @@ export const getPopularMateriAction = async (limit: number = 4) => {
     return {
       errorMessage: error.message || "Gagal mengambil data materi populer",
     };
+  }
+};
+
+/**
+ * @function getMateriByCategory
+ * @description Mengambil materi berdasarkan kategori tertentu
+ * @param categoryId ID kategori yang ingin difilter
+ * @returns Daftar materi dalam kategori tersebut
+ */
+export const getMateriByCategory = async (categoryId: string) => {
+  try {
+    const supabase = await createClient();
+
+    const { data, error } = await supabase
+      .from("Materi")
+      .select(
+        `
+        *,
+        Kategori!category (
+          id,
+          judul
+        )
+      `
+      )
+      .eq("category", categoryId)
+      .order("judul", { ascending: true });
+
+    if (error) {
+      console.error("Error fetching materi by category:", error.message);
+      throw new Error(`Gagal memuat materi: ${error.message}`);
+    }
+
+    return { success: true, materiList: data || [], errorMessage: null };
+  } catch (error) {
+    return handleError(error);
+  }
+};
+
+/**
+ * @function getAllMateriWithCategory
+ * @description Mengambil semua materi dengan informasi kategori
+ * @returns Daftar semua materi dengan data kategori
+ */
+export const getAllMateriWithCategory = async () => {
+  try {
+    const supabase = await createClient();
+
+    const { data, error } = await supabase
+      .from("Materi")
+      .select(
+        `
+        *,
+        Kategori!category (
+          id,
+          judul
+        )
+      `
+      )
+      .order("judul", { ascending: true });
+
+    if (error) {
+      console.error("Error fetching all materi with category:", error.message);
+      throw new Error(`Gagal memuat materi: ${error.message}`);
+    }
+
+    return { success: true, materiList: data || [], errorMessage: null };
+  } catch (error) {
+    return handleError(error);
   }
 };

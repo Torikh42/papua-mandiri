@@ -5,9 +5,9 @@ import React from "react";
 const LoginPage = () => {
   return (
     <div className="flex min-h-screen items-center justify-center">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-md shadow-2xl">
         <CardHeader className="mb-4">
-          <CardTitle className="text-center text-3xl">Login</CardTitle>
+          <CardTitle className="text-center text-3xl text-green-700">Login</CardTitle>
         </CardHeader>
 
         <AuthForm type="login" />
