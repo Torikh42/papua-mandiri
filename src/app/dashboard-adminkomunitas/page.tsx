@@ -1,8 +1,16 @@
 "use client";
-import React from "react";
-import SearchProduk from "@/components/SearchProduk"; // pastikan path ini sesuai
 
-const page = () => {
+import React from "react";
+import SearchProduk from "@/components/SearchProduk";
+import FormAddProduct from "@/components/FormAddProduct"; // pastikan path ini benar
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from "@/components/ui/tabs"; // pastikan ini diimpor dengan benar
+
+const Page = () => {
   return (
     <div className="max-w-xl mx-auto py-10 flex flex-col space-y-12">
       <SearchProduk />
@@ -15,6 +23,13 @@ const page = () => {
         Barang yang Diajukan
       </h3>
 
+      <Tabs defaultValue="add-product" className="w-full">
+
+        <TabsContent value="add-product" className="mt-6">
+          <FormAddProduct />
+        </TabsContent>
+      </Tabs>
+
       <h4 className="text-2xl font-bold" style={{ color: "#4C7A4F" }}>
         Rekomendasi
       </h4>
@@ -26,4 +41,4 @@ const page = () => {
   );
 };
 
-export default page;
+export default Page;

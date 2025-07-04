@@ -68,6 +68,17 @@ const FormAddKategori = () => {
               disabled={isPending}
             />
           </div>
+          
+        <div className="grid gap-2">
+             <Label htmlFor="imageUrl">URL Gambar (Opsional)</Label>
+             <Input
+              id="imageUrl"
+              name="imageUrl"
+              placeholder="http://example.com/gambar.jpg"
+              type="url"
+              disabled={isPending}
+           />
+         </div>
           <Button type="submit" disabled={isPending}>
             {isPending ? (
               <>
