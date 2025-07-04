@@ -6,7 +6,12 @@ import { Phone, Mail, Instagram, Facebook } from 'lucide-react'; // Import ikon
 
 const Footer = () => {
   return (
-    <footer className="bg-gradient-to-r from-green-400 to-blue-300 text-white py-12 px-4 sm:px-6"> {/* Gradien warna yang mirip */}
+    <footer
+    className="text-white py-1 px-2 sm:px-3"
+    style={{
+      background: "var(--Gradasi-Hijau-Biru, linear-gradient(90deg, #6EA57C 0%, #8FC2D1 100%))",
+    }}
+  >
       <div className="mx-auto max-w-7xl grid grid-cols-1 md:grid-cols-3 gap-8">
         {/* Kolom 1: Logo, Nama, Deskripsi */}
         <div className="flex flex-col items-start space-y-4">
@@ -24,7 +29,7 @@ const Footer = () => {
             </div>
           </Link>
           <p className="text-sm mt-2">
-            Deskripsi terkait website Papua Mandiri: Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+          Papua Mandiri adalah aplikasi yang menghadirkan berbagai produk dan inspirasi dari hasil olahan sumber daya alam Papua. Jelajahi resep autentik, produk lokal, dan tips kemandirian yang berbasis kearifan lokal. Satu langkah kecil untuk mendukung kemandirian pangan dan ekonomi Papua!
           </p>
         </div>
 

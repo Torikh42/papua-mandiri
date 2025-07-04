@@ -39,9 +39,12 @@ const MateriCard: React.FC<MateriCardProps> = ({ materi }) => {
       </div>
       <CardHeader className="p-4 pb-2">
         <div className="flex justify-between items-start mb-1">
-          <CardTitle className="text-lg font-bold leading-tight line-clamp-2">
-            {materi.judul}
-          </CardTitle>
+        <CardTitle
+          className="text-lg font-bold leading-tight line-clamp-2"
+          style={{ color: '#4C7A6b' }}
+        >
+          {materi.judul}
+        </CardTitle>
           <Badge variant="secondary" className="capitalize text-xs whitespace-nowrap">
             {materi.category.replace(/_/g, ' ')}
           </Badge>

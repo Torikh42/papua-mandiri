@@ -71,9 +71,9 @@ const AuthForm = ({ type }: Props) => {
         {!isLoginForm && (
           <>
             <div className="flex flex-col space-y-1.5">
-              <Label htmlFor="fullName" className=" text-green-700">
+                <Label htmlFor="fullName" className="text-[#4c7a6b]">
                 Nama Lengkap
-              </Label>
+                </Label>
               <Input
                 id="fullName"
                 name="fullName"
@@ -84,9 +84,9 @@ const AuthForm = ({ type }: Props) => {
               />
             </div>
             <div className="flex flex-col space-y-1.5">
-              <Label htmlFor="location" className=" text-green-700">
+                <Label htmlFor="location" className="text-[#4c7a6b]">
                 Lokasi
-              </Label>
+                </Label>
               <Input
                 id="location"
                 name="location"
@@ -100,9 +100,9 @@ const AuthForm = ({ type }: Props) => {
         )}
         {/* Input email dan password SELALU tampil */}
         <div className="flex flex-col space-y-1.5">
-          <Label htmlFor="email" className=" text-green-700">
+            <Label htmlFor="email" className="text-[#4c7a6b]">
             Email
-          </Label>
+            </Label>
           <Input
             id="email"
             name="email"
@@ -113,9 +113,9 @@ const AuthForm = ({ type }: Props) => {
           />
         </div>
         <div className="flex flex-col space-y-1.5">
-          <Label htmlFor="password" className=" text-green-700">
+            <Label htmlFor="password" className="text-[#4c7a6b]">
             Password
-          </Label>
+            </Label>
           <Input
             id="password"
             name="password"
@@ -128,7 +128,7 @@ const AuthForm = ({ type }: Props) => {
         {/* Confirm Password hanya saat sign up */}
         {!isLoginForm && (
           <div className="flex flex-col space-y-1.5">
-            <Label htmlFor="confirmPassword" className=" text-green-700">
+            <Label htmlFor="confirmPassword" className="text-[#4c7a6b]">
               Konfirmasi Password
             </Label>
             <Input
@@ -144,7 +144,8 @@ const AuthForm = ({ type }: Props) => {
       </CardContent>
       <CardFooter className="mt-4 flex flex-col gap-6">
         <Button
-          className="w-full  bg-green-700 hover:bg-green-600"
+          className="w-full"
+          style={{ backgroundColor: "#4c7a6b" }}
           disabled={isPending}
         >
           {isPending ? (
@@ -158,23 +159,23 @@ const AuthForm = ({ type }: Props) => {
         {isLoginForm && (
           <Link
             href="/forgot-password"
-            className="text-sm text-blue-500 hover:underline"
-          >
+            className="text-sm hover:underline" style={{ color: '#6AA1B0' }}>
+          
             Lupa password?
           </Link>
         )}
 
-        <p className="text-xs">
-          {isLoginForm ? "Belum punya akun?" : "Sudah punya akun?"}{" "}
-          <Link
-            href={isLoginForm ? "/sign-up" : "/login"}
-            className={`text-blue-500 ${
-              isPending ? "pointer-events-none opacity-50" : ""
-            }`}
-          >
-            {isLoginForm ? "Daftar" : "Login"}
-          </Link>
-        </p>
+      <p className="text-xs">
+        {isLoginForm ? "Belum punya akun?" : "Sudah punya akun?"}{" "}
+        <Link
+          href={isLoginForm ? "/sign-up" : "/login"}
+          className={isPending ? "pointer-events-none opacity-50" : ""}
+          style={{ color: "#6AA1B0" }}
+        >
+          {isLoginForm ? "Daftar" : "Login"}
+        </Link>
+      </p>
+
       </CardFooter>
     </>
   );

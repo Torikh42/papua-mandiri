@@ -70,7 +70,7 @@ const MateriPopulerSection: React.FC = () => {
           <Link href="/materi" passHref>
             <Button
               variant="outline"
-              className="text-blue-600 border-blue-200 hover:bg-blue-50"
+              className="text-green-600 border-green-200 hover:bg-green-50"
             >
               Lihat Semua Materi
             </Button>

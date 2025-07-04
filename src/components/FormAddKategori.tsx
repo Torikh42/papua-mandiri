@@ -68,27 +68,20 @@ const FormAddKategori = () => {
               disabled={isPending}
             />
           </div>
-          
-        <div className="grid gap-2">
-             <Label htmlFor="imageUrl">URL Gambar (Opsional)</Label>
-             <Input
-              id="imageUrl"
-              name="imageUrl"
-              placeholder="http://example.com/gambar.jpg"
-              type="url"
-              disabled={isPending}
-           />
-         </div>
-          <Button type="submit" disabled={isPending}>
+            <Button
+            type="submit"
+            disabled={isPending}
+            style={{ backgroundColor: "#4c7a6b", color: "#fff" }}
+            >
             {isPending ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Menyimpan...
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Menyimpan...
               </>
             ) : (
               "Tambah Kategori"
             )}
-          </Button>
+            </Button>
         </form>
       </CardContent>
     </Card>

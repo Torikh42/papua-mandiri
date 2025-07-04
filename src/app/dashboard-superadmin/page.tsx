@@ -9,7 +9,7 @@ import FormAddMateri from '@/components/FormAddMateri';
 const DashboardSuperAdmin = () => {
   return (
     <div className="container mx-auto py-8">
-      <h1 className="text-3xl font-bold mb-6 text-gray-800">Dashboard Super Admin</h1>
+      <h1 className="text-3xl font-bold mb-6" style={{ color: "#4c7a6b" }}>Dashboard Super Admin</h1>
       
       <Tabs defaultValue="add-category" className="w-full">
         <TabsList className="grid w-full grid-cols-2">

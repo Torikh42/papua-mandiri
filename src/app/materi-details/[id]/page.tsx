@@ -152,7 +152,7 @@ export default function MateriDetailPage({
         <Button variant="ghost" asChild>
           <Link
             href="/materi"
-            className="flex items-center text-blue-600 hover:text-blue-800"
+            className="flex items-center text-green-600 hover:text-green-800"
           >
             <ChevronLeft className="mr-2 h-5 w-5" /> Kembali ke Daftar Materi
           </Link>
@@ -160,7 +160,7 @@ export default function MateriDetailPage({
         {/* Tombol Simpan/Batalkan Simpan */}
         <Button
           variant={isSaved ? "default" : "outline"}
-          className={isSaved ? "bg-blue-500 hover:bg-blue-600 text-white" : "border-blue-500 text-blue-500 hover:bg-blue-50"}
+          className={isSaved ? "bg-green-500 hover:bg-green-600 text-white" : "border-green-500 text-green-500 hover:bg-green-50"}
           onClick={handleSaveToggle}
           disabled={isSaving} // Nonaktifkan tombol saat proses saving/unsaving
         >
@@ -183,7 +183,7 @@ export default function MateriDetailPage({
       <Card className="max-w-4xl mx-auto shadow-lg">
         <CardHeader className="p-6">
           <div className="flex justify-between items-start mb-2">
-            <CardTitle className="text-3xl font-bold text-gray-800 mr-4">
+            <CardTitle className="text-3xl font-bold text-[#4c7a6b] mr-4">
               {materi.judul}
             </CardTitle>
             {materi.category?.judul && ( // <<<--- Menggunakan 'judul' untuk nama kategori
@@ -256,7 +256,7 @@ export default function MateriDetailPage({
               <ol className="list-decimal list-inside space-y-3 text-gray-700">
                 {materi.langkah_langkah.map((step: string, index: number) => (
                   <li key={index} className="text-base leading-relaxed">
-                    <strong className="text-blue-600">
+                    <strong className="text-[#4c7a6b]">
                       Langkah {index + 1}:
                     </strong>{" "}
                     {step}

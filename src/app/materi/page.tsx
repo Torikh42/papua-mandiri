@@ -114,10 +114,10 @@ export default function MateriListPage() {
   return (
     <div className="container mx-auto py-8 px-4 sm:px-6">
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-800">Daftar Materi Edukasi</h1>
+        <h1 className="text-3xl font-bold" style={{ color: "#4c7a6b" }}>Daftar Materi Edukasi</h1>
         {isSuperAdmin && (
           <Link href="/dashboard-superadmin?tab=add-materi" passHref>
-            <Button>+ Tambah Materi</Button>
+            <Button style={{ backgroundColor: "#4c7a6b", color: "#fff" }}>+ Tambah Materi</Button>
           </Link>
         )}
       </div>
@@ -131,7 +131,6 @@ export default function MateriListPage() {
         onCategoryFilter={handleCategoryFilter}
         selectedCategory={selectedCategory}
       />
-
       {errorMessage ? (
         <div className="text-center text-red-500 py-10">
           <p className="text-xl">Terjadi kesalahan saat memuat materi:</p>

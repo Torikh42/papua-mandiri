@@ -15,11 +15,11 @@ const Page = () => {
     <div className="max-w-xl mx-auto py-10 flex flex-col space-y-12">
       <SearchProduk />
 
-      <h2 className="text-2xl font-bold text-center" style={{ color: "#4C7A4F" }}>
+      <h2 className="text-2xl font-bold text-center" style={{ color: "#4C7A6b" }}>
         Menu Utama
       </h2>
 
-      <h3 className="text-2xl font-bold" style={{ color: "#4C7A4F" }}>
+      <h3 className="text-2xl font-bold" style={{ color: "#4C7A6b" }}>
         Barang yang Diajukan
       </h3>
 
@@ -30,7 +30,7 @@ const Page = () => {
         </TabsContent>
       </Tabs>
 
-      <h4 className="text-2xl font-bold" style={{ color: "#4C7A4F" }}>
+      <h4 className="text-2xl font-bold" style={{ color: "#4C7A6b" }}>
         Rekomendasi
       </h4>
 

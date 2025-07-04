@@ -2,14 +2,19 @@ import React from "react";
 
 const WelcomeCard = () => {
   return (
-    <div className="bg-gradient-to-r from-green-400 to-blue-300 text-white py-5 px-6 rounded-md shadow-md">
+   <div
+     className="text-white py-5 px-6 rounded-md shadow-md"
+      style={{
+      background: "var(--Gradasi-Hijau-Biru, linear-gradient(90deg, #6EA57C 0%, #8FC2D1 100%))",
+  }}
+>
       <h2 className="text-3xl font-bold mb-2">
-        Resep Mandiri, Rasa Asli Papua!
+        Ayo Olah Sumber Daya Alam dan Wujudkan Kemandirian Papua!
       </h2>
-      <h1 className="text-xl">Jelajahi resep autentik dengan bahan </h1>
-      <span className="text-xl">segar Papua untuk dapur mandiri Anda. </span>
-      <h1 className="text-xl">Setiap resep, jejak rasa Papua. Masak</h1>
-      <span className="text-xl"> mudah, nikmati cita rasa lokal!</span>
+      <h1 className="text-xl">Eksplorasi kekayaan alam Papua lewat produk dan kreasi autentik.</h1>
+      <span className="text-xl">Dari bahan segar hingga hasil olahan mandiri </span>
+      <h1 className="text-xl">semuanya berakar dari bumi Papua, untuk dapur dan hidup yang lebih mandiri.</h1>
+      <span className="text-xl">Nikmati hasilnya, rasakan jejak lokalnya!</span>
     </div>
   );
 };

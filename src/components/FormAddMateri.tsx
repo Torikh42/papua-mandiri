@@ -220,19 +220,21 @@ const FormAddMateri = () => {
             </Button>
           </div>
 
-          <Button
+            <Button
             type="submit"
             disabled={isPending || loadingCategories || categories.length === 0}
-          >
+            style={{ backgroundColor: "#4c7a6b", color: "#fff" }}
+            className="hover:opacity-90"
+            >
             {isPending ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Menyimpan...
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Menyimpan...
               </>
             ) : (
               "Tambah Materi"
             )}
-          </Button>
+            </Button>
         </form>
       </CardContent>
     </Card>

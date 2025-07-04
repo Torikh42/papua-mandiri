@@ -8,24 +8,24 @@ const page = () => {
     <div className="flex flex-col gap-10 px-6 py-8">
       {" "}
       {/* spacing antar elemen */}
-      <header></header
+      <header></header>
       <WelcomeCard />
       <h2
-        style={{ color: "#4C7A4F" }}
+        style={{ color: "#4C7A6b" }}
         className="text-2xl font-bold text-center"
       >
         Materi Populer
       </h2>
       <MateriPopulerSection />
       <h3
-        style={{ color: "#4C7A4F" }}
+        style={{ color: "#4C7A6b" }}
         className="text-2xl font-bold text-center"
       >
         Kategori Pengolahan SDA
       </h3>
       <KategoriSdaSection />
       <h4
-        style={{ color: "#4C7A4F" }}
+        style={{ color: "#4C7A6b" }}
         className="text-2xl font-bold text-center"
       >
         FAQ

@@ -58,7 +58,12 @@ export default function Navbar({ user }: { user: User }) {
   const currentNavItems = user ? navItemsLoggedIn : navItemsNotLoggedIn;
 
   return (
-    <header className="bg-gradient-to-r from-green-400 to-blue-300 text-white py-1 px-2 sm:px-3">
+    <header
+  className="text-white py-1 px-2 sm:px-3"
+  style={{
+    background: "var(--Gradasi-Hijau-Biru, linear-gradient(90deg, #6EA57C 0%, #8FC2D1 100%))",
+  }}
+>
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
         <Link
           className="flex flex-shrink-0 items-center gap-2 sm:gap-3"
@@ -144,7 +149,12 @@ export default function Navbar({ user }: { user: User }) {
       </div>
 
       {mobileOpen && (
-        <div className="bg-gradient-to-r from-green-400 to-blue-300 text-white py-1 px-2 sm:px-3">
+        <div
+          className="text-white py-1 px-2 sm:px-3"
+          style={{
+            background: "var(--Gradasi-Hijau-Biru, linear-gradient(90deg, #6EA57C 0%, #8FC2D1 100%))",
+          }}
+        >
           <nav className="flex flex-col gap-1 px-4 py-3">
             {currentNavItems.map((item) => (
               <Button

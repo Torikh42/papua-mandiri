@@ -54,7 +54,8 @@ const MateriCard: React.FC<MateriCardProps> = ({ materi }) => {
       
       <CardHeader className="flex-grow">
         <div className="flex items-start justify-between gap-2 mb-2">
-          <CardTitle className="text-lg font-bold leading-tight text-green-700">
+          <CardTitle className="text-lg font-bold leading-tight"
+            style={{ color: '#4C7A6b' }}>
             {materi.judul}
           </CardTitle>
           {materi.Kategori && (
@@ -79,9 +80,14 @@ const MateriCard: React.FC<MateriCardProps> = ({ materi }) => {
         </div>
         
         <Link href={`/materi-details/${materi.id}`} className="w-full">
-          <Button className="w-full bg-green-700 hover:bg-green-600">
+            <Button
+            className="w-full"
+            style={{ backgroundColor: '#4C7A6b', color: 'white' }}
+            onMouseOver={e => (e.currentTarget.style.backgroundColor = '#3b5e52')}
+            onMouseOut={e => (e.currentTarget.style.backgroundColor = '#4C7A6b')}
+            >
             Lihat Detail
-          </Button>
+            </Button>
         </Link>
       </CardContent>
     </Card>

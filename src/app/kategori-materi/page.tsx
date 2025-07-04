@@ -6,7 +6,7 @@
 // const Kategori = () => {
 //   return (
 //     <div className="px-6 py-8">
-//       <h1 style={{ color: "#4C7A4F" }} className="text-2xl font-bold text-center">
+//       <h1 style={{ color: "#4C7A6b" }} className="text-2xl font-bold text-center">
 //         Kategori SDA
 //       </h1>
 //       <p className="text-center text-gray-600 mt-2">
@@ -49,7 +49,7 @@ export default async function KategoriListPage() {
   return (
     <div className="container mx-auto py-8 px-4 sm:px-6">
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-800">Semua Kategori SDA</h1>
+        <h1 className="text-3xl font-bold" style={{ color: "#4c7a6b" }}>Semua Kategori SDA</h1>
         {isSuperAdmin && ( // Tampilkan tombol hanya jika user adalah super_admin
           <Link href="/dashboard-superadmin?tab=add-category" passHref>
             <Button>+ Tambah Kategori</Button>
@@ -73,7 +73,7 @@ export default async function KategoriListPage() {
           <p className="text-xl">Belum ada kategori tersedia.</p>
           {isSuperAdmin && (
             <p className="mt-2">Silakan {" "}
-              <Link href="/dashboard-superadmin?tab=add-category" className="text-blue-500 hover:underline">
+              <Link href="/dashboard-superadmin?tab=add-category" className="hover:underline" style={{ color: '#4C7A6b' }}>
                 tambah kategori baru
               </Link>
               .
