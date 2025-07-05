@@ -10,6 +10,7 @@ import {
   Heart,
   Users,
 } from "lucide-react";
+import Link from "next/link";
 
 const WelcomeCard = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -21,7 +22,8 @@ const WelcomeCard = () => {
         "Eksplorasi kekayaan alam Papua lewat produk dan kreasi autentik. Dari bahan segar hingga hasil olahan mandiri semuanya berakar dari bumi Papua, untuk dapur dan hidup yang lebih mandiri. Nikmati hasilnya, rasakan jejak lokalnya!",
       icon: <Leaf className="h-6 w-6 sm:h-8 sm:w-8 text-white/80" />,
       gradient: "linear-gradient(135deg, #6EA57C 0%, #8FC2D1 100%)",
-      buttonText: "Jelajahi Resep",
+      buttonText: "Jelajahi Materi",
+      href: "/materi",
     },
     {
       title: "Komunitas Petani Papua Terpercaya",
@@ -29,7 +31,8 @@ const WelcomeCard = () => {
         "Bergabunglah dengan komunitas petani lokal yang berkomitmen menghadirkan produk segar berkualitas tinggi. Dukung ekonomi lokal, nikmati hasil bumi terbaik Papua!",
       icon: <Users className="h-6 w-6 sm:h-8 sm:w-8 text-white/80" />,
       gradient: "linear-gradient(135deg, #4c7a6b 0%, #6EA57C 100%)",
-      buttonText: "Bergabung Sekarang",
+      buttonText: "Jelajahi Kategori",
+      href: "/kategori-materi",
     },
     {
       title: "Selamat Datang di Papua Mandiri!",
@@ -37,7 +40,6 @@ const WelcomeCard = () => {
         "Ternyata banyak loh yang bisa diolah dari kekayaan alam Papua — dari buah merah hingga rempah lokal! Yuk, jelajahi potensi alam Papua dan mulai hidup mandiri dengan olahan penuh cita rasa dan manfaat!",
       icon: <Heart className="h-6 w-6 sm:h-8 sm:w-8 text-white/80" />,
       gradient: "linear-gradient(135deg, #8FC2D1 0%, #A8E6CF 100%)",
-      buttonText: "Coba Sekarang",
     },
   ];
 
@@ -45,7 +47,7 @@ const WelcomeCard = () => {
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % slides.length);
-    }, 5000); // Change slide every 5 seconds
+    }, 5000); // Ganti slide setiap 5 detik
 
     return () => clearInterval(interval);
   }, [slides.length]);
@@ -98,21 +100,23 @@ const WelcomeCard = () => {
                   </p>
 
                   <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 sm:gap-4 px-2 sm:px-0">
-                    <Button
-                      className="bg-white/20 hover:bg-white/30 text-white font-semibold border border-white/30 backdrop-blur-sm transition-all duration-300 hover:scale-105 w-full sm:w-auto text-sm sm:text-base"
-                      size="default"
-                    >
-                      <ArrowRight className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
-                      {slide.buttonText}
-                    </Button>
-
-                    <button className="text-white/80 hover:text-white text-xs sm:text-sm font-medium underline underline-offset-4 transition-colors duration-200 mt-2 sm:mt-0">
-                      Pelajari Lebih Lanjut
-                    </button>
+                    {/* Tombol hanya ditampilkan jika ada buttonText dan href */}
+                    {slide.buttonText && slide.href && (
+                       <Button
+                        asChild
+                        className="bg-white/20 hover:bg-white/30 text-white font-semibold border border-white/30 backdrop-blur-sm transition-all duration-300 hover:scale-105 w-full sm:w-auto text-sm sm:text-base"
+                        size="default"
+                      >
+                        <Link href={slide.href}>
+                          <ArrowRight className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
+                          {slide.buttonText}
+                        </Link>
+                      </Button>
+                    )}
                   </div>
                 </div>
 
-                {/* Decorative Elements - Hidden on mobile, shown on larger screens */}
+                {/* Decorative Elements */}
                 <div className="hidden xl:block flex-shrink-0">
                   <div className="relative">
                     <div className="w-24 h-24 lg:w-32 lg:h-32 bg-white/10 rounded-full backdrop-blur-sm flex items-center justify-center">
@@ -131,7 +135,7 @@ const WelcomeCard = () => {
           ))}
         </div>
 
-        {/* Navigation Arrows - Hidden on very small screens */}
+        {/* Navigation Arrows */}
         <button
           onClick={prevSlide}
           className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-full p-1.5 sm:p-2 transition-all duration-200 hover:scale-110 hidden xs:block"
