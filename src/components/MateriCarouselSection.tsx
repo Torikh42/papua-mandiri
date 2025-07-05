@@ -3,7 +3,6 @@ import { getPopularMateriAction } from "@/action/materiDetails";
 import MateriCard from "./MateriCard";
 import { PopularMateriResult } from "@/types";
 
-
 const MateriCarouselSection = async () => {
   const result = await getPopularMateriAction(8) as PopularMateriResult;
 
@@ -39,7 +38,11 @@ const MateriCarouselSection = async () => {
           >
             <MateriCard materi={{
               ...materi,
-              description: materi.description || "", // Ensure description is not undefined
+              description: materi.description || "",
+              // Add missing required properties with default values
+              video_url: null,
+              langkah_langkah: [],
+              uploader_id: "",
               Kategori: materi.Kategori ? {
                 id: materi.Kategori.id,
                 judul: materi.Kategori.judul

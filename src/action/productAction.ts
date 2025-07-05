@@ -109,11 +109,11 @@ export const getProdukUntukPemerintahAction = async () => {
     await checkRequiredRole(supabase, "admin_pemerintah");
     const { data, error } = await supabase
       .from("Produk")
-      .select(`*, pembuat:created_by (user_name)`)
+      .select(`*, pembuat:created_by (user_name)`) // Ambil semua kolom produk
       .eq("status", "diajukan")
       .order("created_at", { ascending: false });
     if (error) throw error;
-    return { success: true, data, errorMessage: null };
+    return { success: true, data };
   } catch (error) {
     return handleError(error);
   }

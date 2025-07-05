@@ -9,12 +9,18 @@ export interface Kategori {
 export interface Materi {
   id: string;
   judul: string;
-  description?: string;
-  Kategori?: Kategori;
-  created_at: string; // ← Ganti ke string agar cocok dengan hasil API dan komponen
+  description: string;
+  created_at: string;
   updated_at?: string;
-  image_url: string | null; // ← Tambahkan agar tidak error di MateriCard
+  image_url: string | null;
+  video_url: string | null; // Allow null
+  langkah_langkah: string[];
+  uploader_id: string;
   views_count?: number;
+  Kategori?: {
+    id: string;
+    judul: string;
+  };
 }
 
 export type MateriResult =
@@ -29,6 +35,7 @@ export type MateriResult =
       errorMessage: string;
     };
 
+    
 export type KategoriResult =
   | {
       success: true;

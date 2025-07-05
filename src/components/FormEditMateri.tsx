@@ -22,20 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
-type Materi = {
-  id: string;
-  judul: string;
-  description: string;
-  image_url?: string;
-  video_url?: string;
-  category: string;
-  langkah_langkah: string[];
-  Kategori?: {
-    id: string;
-    judul: string;
-  };
-};
+import { Materi } from "./MateriCard";
 
 type FormEditMateriProps = {
   materi: Materi;

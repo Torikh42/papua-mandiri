@@ -67,7 +67,7 @@ export const askPamanAiAction = async (
 
     // 4. Call AI API
     const completion = await openai.chat.completions.create({
-      model: "deepseek/deepseek-chat",
+      model: "deepseek/deepseek-r1-0528-qwen3-8b:free",
       messages,
     });
 

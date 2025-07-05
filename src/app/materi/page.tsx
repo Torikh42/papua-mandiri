@@ -17,19 +17,6 @@ interface MateriApiResponse {
   errorMessage: string | null;
 }
 
-// Define the type for search results
-interface SearchResult {
-  id: string;
-  judul: string;
-  description: string;
-  category: string;
-  image_url: string;
-  video_url: string;
-  langkah_langkah: string;
-  uploader_id: string;
-  created_at: string;
-}
-
 export default function MateriListPage() {
   const [materiList, setMateriList] = useState<Materi[]>([]);
   const [filteredMateri, setFilteredMateri] = useState<Materi[]>([]);
@@ -38,7 +25,7 @@ export default function MateriListPage() {
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [searchResults, setSearchResults] = useState<Materi[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -121,13 +108,9 @@ export default function MateriListPage() {
     applyFilters();
   }, [applyFilters]);
 
-  const handleSearchResults = (results: SearchResult[]) => {
+  const handleSearchResults = (results: Materi[]) => {
     setSearchResults(results);
-    if (results.length === 0) {
-      setIsSearching(false);
-    } else {
-      setIsSearching(true);
-    }
+    setIsSearching(results.length > 0);
   };
 
   const handleCategoryFilter = (categoryId: string | null) => {

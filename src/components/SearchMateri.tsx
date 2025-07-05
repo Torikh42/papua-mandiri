@@ -5,6 +5,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Command, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { searchMateri } from "@/lib/searchMateri"
+import { Materi } from "./MateriCard"
 
 type Item = {
   id: string
@@ -13,8 +14,8 @@ type Item = {
 }
 
 interface SearchMateriProps {
-  onResults?: (results: Item[]) => void
-  selectedCategory?: string | null
+  onResults?: (results: Materi[]) => void;
+  selectedCategory: string | null;
 }
 
 const SearchMateri = ({ onResults, selectedCategory }: SearchMateriProps) => {

@@ -13,11 +13,16 @@ import Image from "next/image";
 import { Calendar, Eye, Tag } from "lucide-react";
 
 export interface Materi {
-  id: string;
-  created_at: string;
+id: string;
   judul: string;
   description: string;
+  created_at: string;
+  updated_at?: string;
   image_url: string | null;
+  video_url: string | null; // Ubah dari 'string' ke 'string | null'
+  langkah_langkah: string[]; // Atau string[] | null jika bisa null
+  uploader_id: string;
+  category? : string
   views_count?: number;
   Kategori?: {
     id: string;

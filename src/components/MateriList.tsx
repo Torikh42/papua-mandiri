@@ -54,8 +54,11 @@ const MateriList = () => {
 
       if ("success" in materiResult && materiResult.success) {
         const result = materiResult as MateriResult;
-        setMateriList(result.materiList);
-        setFilteredMateriList(result.materiList);
+        // Fix: Handle undefined materiList
+        if (result.materiList) {
+          setMateriList(result.materiList);
+          setFilteredMateriList(result.materiList);
+        }
       }
 
       if (
@@ -64,7 +67,10 @@ const MateriList = () => {
         categoryResult.categories
       ) {
         const result = categoryResult as KategoriResult;
-        setCategories(result.categories);
+        // Fix: Handle undefined categories
+        if (result.categories) {
+          setCategories(result.categories);
+        }
       }
     } catch (error) {
       toast.error("Gagal memuat data");
@@ -106,7 +112,7 @@ const MateriList = () => {
           toast.success(`Materi "${judul}" berhasil dihapus.`);
           fetchMateriAndCategories();
         } else {
-          toast.error( "Gagal menghapus materi.");
+          toast.error("Gagal menghapus materi.");
         }
       } catch (error) {
         toast.error("Terjadi kesalahan saat menghapus materi.");
@@ -237,7 +243,13 @@ const MateriList = () => {
                     </DialogTrigger>
                     {editingMateri && (
                       <FormEditMateri
-                        materi={editingMateri}
+                        materi={{
+                          ...editingMateri,
+                          // Fix: Add missing properties for FormEditMateri
+                          video_url: editingMateri.video_url || null,
+                          langkah_langkah: editingMateri.langkah_langkah || [],
+                          uploader_id: editingMateri.uploader_id || "",
+                        }}
                         categories={categories}
                         onActionComplete={() => {
                           setEditingMateri(null);
@@ -264,8 +276,7 @@ const MateriList = () => {
                           Konfirmasi Penghapusan
                         </AlertDialogTitle>
                         <AlertDialogDescription>
-                          Apakah Anda yakin ingin menghapus materi 
-                          {materi.judul}? Tindakan ini tidak dapat dibatalkan.
+                          Apakah Anda yakin ingin menghapus materi {materi.judul}? Tindakan ini tidak dapat dibatalkan.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>

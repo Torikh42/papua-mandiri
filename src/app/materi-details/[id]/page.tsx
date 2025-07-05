@@ -52,9 +52,10 @@ type SavedStatusResponse =
   | { isSaved: boolean; errorMessage: null }
   | { isSaved?: never; errorMessage: string };
 
-type SaveActionResponse =
-  | { success: boolean; errorMessage?: string }
-  | undefined;
+type SaveActionResponse = {
+  success: boolean;
+  errorMessage?: string | null; // Add null as a possible type
+};
 
 interface PageProps {
   params: Promise<{ id: string }>;
