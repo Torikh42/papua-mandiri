@@ -47,7 +47,7 @@ export default function PamanAiForm() {
         };
         setMessages((prev) => [...prev, assistantMessage]);
       } else {
-        toast.error(result.errorMessage || "Gagal mendapatkan respon AI.");
+        toast.error("Gagal mendapatkan respon AI.");
         setMessages((prev) => prev.slice(0, -1));
       }
     });

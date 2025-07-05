@@ -264,8 +264,8 @@ const MateriList = () => {
                           Konfirmasi Penghapusan
                         </AlertDialogTitle>
                         <AlertDialogDescription>
-                          Apakah Anda yakin ingin menghapus materi "
-                          {materi.judul}"? Tindakan ini tidak dapat dibatalkan.
+                          Apakah Anda yakin ingin menghapus materi 
+                          {materi.judul}? Tindakan ini tidak dapat dibatalkan.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>

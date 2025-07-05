@@ -41,11 +41,11 @@ const ReviewProdukDialog = ({
   const handleUpdateStatus = (status: "disetujui" | "ditolak") => {
     startTransition(async () => {
       const result = await updateProdukStatusAction(produk.id, status, catatan);
-      if (result.success) {
+      if (result) {
         toast.success(`Produk "${produk.judul}" telah berhasil di-${status}.`);
         onActionComplete(); // Panggil callback untuk refresh & tutup dialog
       } else {
-        toast.error(result.errorMessage || "Gagal memperbarui status produk.");
+        toast.error("Gagal memperbarui status produk.");
       }
     });
   };
