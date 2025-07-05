@@ -56,19 +56,35 @@ type SaveActionResponse =
   | { success: boolean; errorMessage?: string }
   | undefined;
 
-export default function MateriDetailPage({
-  params,
-}: {
-  params: { id: string };
-}) {
-  const { id } = params;
+interface PageProps {
+  params: Promise<{ id: string }>;
+}
+
+export default function MateriDetailPage({ params }: PageProps) {
+  const [materiId, setMateriId] = useState<string | null>(null);
   const [materi, setMateri] = useState<MateriDetail | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [isSaved, setIsSaved] = useState(false);
   const [isSaving, startSavingTransition] = useTransition();
 
-  const fetchMateriAndStatus = useCallback(async () => {
+  // Resolve params in useEffect
+  useEffect(() => {
+    const resolveParams = async () => {
+      try {
+        const resolvedParams = await params;
+        setMateriId(resolvedParams.id);
+      } catch (error) {
+        console.error("Error resolving params:", error);
+        setErrorMessage("Terjadi kesalahan saat memuat halaman");
+        setLoading(false);
+      }
+    };
+
+    resolveParams();
+  }, [params]);
+
+  const fetchMateriAndStatus = useCallback(async (id: string) => {
     setLoading(true);
     setErrorMessage(null);
 
@@ -105,11 +121,14 @@ export default function MateriDetailPage({
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, []);
 
+  // Fetch data when materiId is available
   useEffect(() => {
-    fetchMateriAndStatus();
-  }, [fetchMateriAndStatus]);
+    if (materiId) {
+      fetchMateriAndStatus(materiId);
+    }
+  }, [materiId, fetchMateriAndStatus]);
 
   const handleSaveToggle = () => {
     if (!materi) return;

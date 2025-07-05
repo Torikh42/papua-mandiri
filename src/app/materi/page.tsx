@@ -1,319 +1,216 @@
+// app/materi/page.tsx
 "use client";
 
-import React, { useState, useEffect, useTransition, useCallback } from "react";
-import Image from "next/image";
-import Link from "next/link";
-import {
-  getMateriByIdAction,
-  incrementMateriViewCountAction,
-} from "@/action/materiDetails";
-import {
-  saveMateriAction,
-  removeSavedMateriAction,
-  isMateriSavedAction,
-} from "@/action/savedMateriAction";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { ChevronLeft, Bookmark, BookmarkCheck, Loader2 } from "lucide-react";
+import React, { useState, useEffect, useCallback } from "react";
+import { getAllMateriAction } from "@/action/materiDetails";
+import MateriCard, { Materi } from "@/components/MateriCard";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
+import Link from "next/link";
+import { getUser } from "@/auth/server";
+import SearchMateri from "@/components/SearchMateri";
+import FilterMateriByCategory from "@/components/FilterMateriByCategory";
 
-interface CategoryData {
-  id: string;
-  judul: string;
+// Define the type for the API response
+interface MateriApiResponse {
+  success?: boolean;
+  materiList?: Materi[];
+  errorMessage: string | null;
 }
 
-interface MateriDetail {
+// Define the type for search results
+interface SearchResult {
   id: string;
   judul: string;
   description: string;
-  image_url: string | null;
-  video_url: string | null;
-  langkah_langkah: string[];
+  category: string;
+  image_url: string;
+  video_url: string;
+  langkah_langkah: string;
   uploader_id: string;
-  category_id: string;
   created_at: string;
-  views_count: number | null;
-  category: CategoryData | null;
 }
 
-type MateriResponse =
-  | { success: true; materi: MateriDetail; errorMessage: null }
-  | { success: false; errorMessage: string; materi?: never };
-
-type SavedStatusResponse =
-  | { isSaved: boolean; errorMessage: null }
-  | { isSaved?: never; errorMessage: string };
-
-type SaveActionResponse =
-  | { success: boolean; errorMessage?: string }
-  | undefined;
-
-interface PageProps {
-  params: Promise<{ id: string }>;
-}
-
-export default function MateriDetailPage({ params }: PageProps) {
-  const [materiId, setMateriId] = useState<string | null>(null);
-  const [materi, setMateri] = useState<MateriDetail | null>(null);
+export default function MateriListPage() {
+  const [materiList, setMateriList] = useState<Materi[]>([]);
+  const [filteredMateri, setFilteredMateri] = useState<Materi[]>([]);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [isSaved, setIsSaved] = useState(false);
-  const [isSaving, startSavingTransition] = useTransition();
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
 
-  // Resolve params in useEffect
   useEffect(() => {
-    const resolveParams = async () => {
+    const fetchData = async () => {
       try {
-        const resolvedParams = await params;
-        setMateriId(resolvedParams.id);
+        setIsLoading(true);
+
+        // Fetch all materi with category info
+        const result = (await getAllMateriAction()) as MateriApiResponse;
+        if (result.errorMessage) {
+          setErrorMessage(result.errorMessage);
+        } else if (result.materiList) {
+          setMateriList(result.materiList);
+          setFilteredMateri(result.materiList);
+        }
+
+        // Check user role
+        const currentUser = await getUser();
+        setIsSuperAdmin(currentUser?.role === "super_admin");
       } catch (error) {
-        console.error("Error resolving params:", error);
-        setErrorMessage("Terjadi kesalahan saat memuat halaman");
-        setLoading(false);
+        console.error("Error fetching data:", error);
+        setErrorMessage("Terjadi kesalahan saat memuat data");
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    resolveParams();
-  }, [params]);
-
-  const fetchMateriAndStatus = useCallback(async (id: string) => {
-    setLoading(true);
-    setErrorMessage(null);
-
-    try {
-      // 1. Fetch materi detail
-      const result = (await getMateriByIdAction(id)) as MateriResponse;
-
-      if (!result.success || !result.materi) {
-        setErrorMessage(result.errorMessage || "Materi tidak ditemukan.");
-        setLoading(false);
-        return;
-      }
-
-      setMateri(result.materi);
-
-      // 2. Increment view count
-      await incrementMateriViewCountAction(result.materi.id);
-
-      // 3. Check saved status
-      const savedResult = (await isMateriSavedAction(
-        result.materi.id
-      )) as SavedStatusResponse;
-      if (savedResult.errorMessage) {
-        console.error("Error checking saved status:", savedResult.errorMessage);
-        toast.error(
-          `Gagal memeriksa status simpanan: ${savedResult.errorMessage}`
-        );
-      } else if (savedResult.isSaved !== undefined) {
-        setIsSaved(savedResult.isSaved);
-      }
-    } catch (error) {
-      setErrorMessage("Terjadi kesalahan saat memuat materi");
-      console.error("Error fetching materi:", error);
-    } finally {
-      setLoading(false);
-    }
+    fetchData();
   }, []);
 
-  // Fetch data when materiId is available
-  useEffect(() => {
-    if (materiId) {
-      fetchMateriAndStatus(materiId);
+  // Function to apply both search and category filters
+  const applyFilters = useCallback(() => {
+    let filtered = materiList;
+
+    // Apply category filter first
+    if (selectedCategory) {
+      filtered = filtered.filter((materi) => {
+        // Type assertion or safe access for category property
+        return (
+          (materi as Materi & { category?: string }).category ===
+          selectedCategory
+        );
+      });
     }
-  }, [materiId, fetchMateriAndStatus]);
 
-  const handleSaveToggle = () => {
-    if (!materi) return;
+    // If there's an active search, use search results instead
+    if (isSearching && searchResults.length > 0) {
+      const searchResultsConverted = searchResults.map(
+        (item): Materi => ({
+          id: item.id,
+          judul: item.judul,
+          description: item.description,
+          image_url: item.image_url,
+          video_url: item.video_url,
+          langkah_langkah: item.langkah_langkah,
+          uploader_id: item.uploader_id,
+          created_at: item.created_at,
+          // Add category as an extended property
+          ...(item.category && { category: item.category }),
+        })
+      );
 
-    startSavingTransition(async () => {
-      let result: SaveActionResponse;
-      try {
-        if (isSaved) {
-          result = await removeSavedMateriAction(materi.id);
-        } else {
-          result = await saveMateriAction(materi.id);
-        }
-
-        if (result?.success) {
-          setIsSaved(!isSaved);
-          toast.success(
-            isSaved
-              ? "Materi berhasil dihapus dari simpanan Anda."
-              : "Materi berhasil disimpan!"
+      // Apply category filter to search results if category is selected
+      if (selectedCategory) {
+        filtered = searchResultsConverted.filter((materi) => {
+          return (
+            (materi as Materi & { category?: string }).category ===
+            selectedCategory
           );
-        } else {
-          toast.error(
-            result?.errorMessage || "Gagal mengubah status simpanan materi."
-          );
-        }
-      } catch (error) {
-        toast.error("Terjadi kesalahan saat mengubah status simpanan");
-        console.error("Error in save toggle:", error);
+        });
+      } else {
+        filtered = searchResultsConverted;
       }
-    });
+    }
+
+    setFilteredMateri(filtered);
+  }, [materiList, selectedCategory, searchResults, isSearching]);
+
+  // Apply filters whenever materiList, selectedCategory, or searchResults change
+  useEffect(() => {
+    applyFilters();
+  }, [applyFilters]);
+
+  const handleSearchResults = (results: SearchResult[]) => {
+    setSearchResults(results);
+    if (results.length === 0) {
+      setIsSearching(false);
+    } else {
+      setIsSearching(true);
+    }
   };
 
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="h-10 w-10 animate-spin text-blue-500" />
-        <p className="ml-3 text-xl text-gray-600">Memuat materi...</p>
-      </div>
-    );
-  }
+  const handleCategoryFilter = (categoryId: string | null) => {
+    setSelectedCategory(categoryId);
+  };
 
-  if (errorMessage || !materi) {
+  if (isLoading) {
     return (
-      <div className="container mx-auto py-8 px-4 sm:px-6 text-center">
-        <Card className="max-w-md mx-auto p-6 bg-red-50 border border-red-200">
-          <CardTitle className="text-xl text-red-600">
-            Terjadi Kesalahan
-          </CardTitle>
-          <CardDescription className="text-red-500 mt-2">
-            {errorMessage || "Materi tidak ditemukan."}
-          </CardDescription>
-          <p className="mt-4 text-sm">
-            <Link href="/materi" className="text-blue-500 hover:underline">
-              Kembali ke Daftar Materi
-            </Link>
-          </p>
-        </Card>
+      <div className="container mx-auto py-8 px-4 sm:px-6">
+        <div className="text-center py-10">
+          <p className="text-xl">Memuat materi...</p>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="container mx-auto py-8 px-4 sm:px-6">
-      <div className="mb-6 flex justify-between items-center">
-        <Button variant="ghost" asChild>
-          <Link
-            href="/materi"
-            className="flex items-center text-green-600 hover:text-green-800"
-          >
-            <ChevronLeft className="mr-2 h-5 w-5" /> Kembali ke Daftar Materi
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold" style={{ color: "#4c7a6b" }}>
+          Daftar Materi Edukasi
+        </h1>
+        {isSuperAdmin && (
+          <Link href="/dashboard-superadmin?tab=add-materi" passHref>
+            <Button style={{ backgroundColor: "#4c7a6b", color: "#fff" }}>
+              + Tambah Materi
+            </Button>
           </Link>
-        </Button>
-        <Button
-          variant={isSaved ? "default" : "outline"}
-          className={
-            isSaved
-              ? "bg-green-500 hover:bg-green-600 text-white"
-              : "border-green-500 text-green-500 hover:bg-green-50"
-          }
-          onClick={handleSaveToggle}
-          disabled={isSaving}
-        >
-          {isSaving ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Mengubah...
-            </>
-          ) : isSaved ? (
-            <>
-              <BookmarkCheck className="mr-2 h-4 w-4" /> Tersimpan
-            </>
-          ) : (
-            <>
-              <Bookmark className="mr-2 h-4 w-4" /> Simpan Materi
-            </>
-          )}
-        </Button>
+        )}
       </div>
 
-      <Card className="max-w-4xl mx-auto shadow-lg">
-        <CardHeader className="p-6">
-          <div className="flex justify-between items-start mb-2">
-            <CardTitle className="text-3xl font-bold text-[#4c7a6b] mr-4">
-              {materi.judul}
-            </CardTitle>
-            {materi.category?.judul && (
-              <Badge
-                variant="secondary"
-                className="capitalize text-sm whitespace-nowrap bg-blue-100 text-blue-800"
-              >
-                {materi.category.judul.replace(/_/g, " ")}
-              </Badge>
-            )}
-          </div>
-          <CardDescription className="text-gray-600 text-base">
-            {materi.description}
-          </CardDescription>
-          <p className="text-sm text-gray-500 mt-2">
-            Diupload: {new Date(materi.created_at).toLocaleDateString("id-ID")}
-            {materi.views_count !== null && (
-              <span className="ml-4">Dilihat: {materi.views_count} kali</span>
-            )}
-          </p>
-        </CardHeader>
+      <SearchMateri
+        onResults={handleSearchResults}
+        selectedCategory={selectedCategory}
+      />
 
-        <CardContent className="p-6 pt-0">
-          {materi.image_url && (
-            <div className="relative w-full h-80 bg-gray-200 rounded-md overflow-hidden mb-6">
-              <Image
-                src={materi.image_url}
-                alt={`Gambar untuk ${materi.judul}`}
-                fill
-                className="object-contain rounded-md"
-              />
-            </div>
-          )}
-
-          {materi.video_url && (
-            <div className="mb-6">
-              <h2 className="text-xl font-bold mb-3 text-gray-700">
-                Video Tutorial
-              </h2>
-              <div
-                className="relative w-full"
-                style={{ paddingBottom: "56.25%", height: 0 }}
-              >
-                <iframe
-                  src={
-                    materi.video_url.includes("youtube.com/watch?v=")
-                      ? materi.video_url.replace("watch?v=", "embed/")
-                      : materi.video_url
-                  }
-                  title={`Video: ${materi.judul}`}
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                  className="absolute top-0 left-0 w-full h-full rounded-md border-0"
-                ></iframe>
-              </div>
-            </div>
-          )}
-
-          <Separator className="my-6" />
-
-          {materi.langkah_langkah?.length > 0 ? (
+      <FilterMateriByCategory
+        onCategoryFilter={handleCategoryFilter}
+        selectedCategory={selectedCategory}
+      />
+      {errorMessage ? (
+        <div className="text-center text-red-500 py-10">
+          <p className="text-xl">Terjadi kesalahan saat memuat materi:</p>
+          <p>{errorMessage}</p>
+        </div>
+      ) : filteredMateri && filteredMateri.length > 0 ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {filteredMateri.map((materi: Materi) => (
+            <MateriCard key={materi.id} materi={materi} />
+          ))}
+        </div>
+      ) : (
+        <div className="text-center text-gray-500 py-10">
+          {isSearching || selectedCategory ? (
             <div>
-              <h2 className="text-xl font-bold mb-4 text-gray-700">
-                Langkah-Langkah Pengolahan
-              </h2>
-              <ol className="list-decimal list-inside space-y-3 text-gray-700">
-                {materi.langkah_langkah.map((step, index) => (
-                  <li key={index} className="text-base leading-relaxed">
-                    <strong className="text-[#4c7a6b]">
-                      Langkah {index + 1}:
-                    </strong>{" "}
-                    {step}
-                  </li>
-                ))}
-              </ol>
+              <p className="text-xl">Tidak ada materi yang ditemukan.</p>
+              <p className="text-sm mt-2">
+                {isSearching && selectedCategory
+                  ? "Coba ubah kata kunci pencarian atau pilih kategori yang berbeda."
+                  : isSearching
+                  ? "Coba ubah kata kunci pencarian."
+                  : "Coba pilih kategori yang berbeda."}
+              </p>
             </div>
           ) : (
-            <p className="text-gray-500 italic">
-              Tidak ada langkah-langkah detail yang tersedia untuk materi ini.
-            </p>
+            <>
+              <p className="text-xl">Belum ada materi tersedia.</p>
+              {isSuperAdmin && (
+                <p className="mt-2">
+                  Silakan{" "}
+                  <Link
+                    href="/dashboard-superadmin?tab=add-materi"
+                    className="text-blue-500 hover:underline"
+                  >
+                    tambah materi baru
+                  </Link>
+                  .
+                </p>
+              )}
+            </>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      )}
     </div>
   );
 }
