@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useTransition } from "react";
+import React, { useState, useEffect, useTransition, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -52,11 +52,16 @@ type SavedStatusResponse =
   | { isSaved: boolean; errorMessage: null }
   | { isSaved?: never; errorMessage: string };
 
-export default function MateriDetailPage({
-  params,
-}: {
+type SaveActionResponse =
+  | { success: boolean; errorMessage?: string }
+  | undefined;
+
+interface PageProps {
   params: { id: string };
-}) {
+  searchParams?: { [key: string]: string | string[] | undefined };
+}
+
+export default function MateriDetailPage({ params }: PageProps) {
   const { id } = params;
   const [materi, setMateri] = useState<MateriDetail | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -64,11 +69,11 @@ export default function MateriDetailPage({
   const [isSaved, setIsSaved] = useState(false);
   const [isSaving, startSavingTransition] = useTransition();
 
-  useEffect(() => {
-    const fetchMateriAndStatus = async () => {
-      setLoading(true);
-      setErrorMessage(null);
+  const fetchMateriAndStatus = useCallback(async () => {
+    setLoading(true);
+    setErrorMessage(null);
 
+    try {
       // 1. Fetch materi detail
       const result = (await getMateriByIdAction(id)) as MateriResponse;
 
@@ -95,33 +100,45 @@ export default function MateriDetailPage({
       } else if (savedResult.isSaved !== undefined) {
         setIsSaved(savedResult.isSaved);
       }
-
+    } catch (error) {
+      setErrorMessage("Terjadi kesalahan saat memuat materi");
+      console.error("Error fetching materi:", error);
+    } finally {
       setLoading(false);
-    };
-
-    fetchMateriAndStatus();
+    }
   }, [id]);
+
+  useEffect(() => {
+    fetchMateriAndStatus();
+  }, [fetchMateriAndStatus]);
 
   const handleSaveToggle = () => {
     if (!materi) return;
 
     startSavingTransition(async () => {
-      let result;
-      if (isSaved) {
-        result = await removeSavedMateriAction(materi.id);
-      } else {
-        result = await saveMateriAction(materi.id);
-      }
+      let result: SaveActionResponse;
+      try {
+        if (isSaved) {
+          result = await removeSavedMateriAction(materi.id);
+        } else {
+          result = await saveMateriAction(materi.id);
+        }
 
-      if (result) {
-        setIsSaved(!isSaved);
-        toast.success(
-          isSaved
-            ? "Materi berhasil dihapus dari simpanan Anda."
-            : "Materi berhasil disimpan!"
-        );
-      } else {
-        toast.error("Gagal mengubah status simpanan materi.");
+        if (result?.success) {
+          setIsSaved(!isSaved);
+          toast.success(
+            isSaved
+              ? "Materi berhasil dihapus dari simpanan Anda."
+              : "Materi berhasil disimpan!"
+          );
+        } else {
+          toast.error(
+            result?.errorMessage || "Gagal mengubah status simpanan materi."
+          );
+        }
+      } catch (error) {
+        toast.error("Terjadi kesalahan saat mengubah status simpanan");
+        console.error("Error in save toggle:", error);
       }
     });
   };
