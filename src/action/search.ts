@@ -53,7 +53,6 @@ export const searchMateri = async (
     };
   } catch (error) {
     return {
-      success: false,
       data: {
         materi: [],
         totalCount: 0,
@@ -100,7 +99,6 @@ export const getMateriSuggestions = async (query: string, limit = 5) => {
     };
   } catch (error) {
     return {
-      success: false,
       suggestions: [],
       ...handleError(error),
     };
@@ -127,7 +125,7 @@ export const getMateriById = async (id: string) => {
     };
   } catch (error) {
     return {
-      success: false,
+
       data: null,
       ...handleError(error),
     };

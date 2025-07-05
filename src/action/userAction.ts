@@ -149,7 +149,7 @@ export const forgotPasswordAction = async (email: string) => {
       errorMessage: null,
     };
   } catch (error) {
-    return { success: false, ...handleError(error), message: null };
+    return {  ...handleError(error), message: null };
   }
 };
 
@@ -219,7 +219,7 @@ export const updatePasswordAction = async (
   } catch (error: unknown) {
     console.error("Exception in updatePasswordAction:", error);
     return {
-      success: false,
+
       ...handleError(error),
       message: null,
     };
