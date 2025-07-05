@@ -56,12 +56,11 @@ type SaveActionResponse =
   | { success: boolean; errorMessage?: string }
   | undefined;
 
-interface PageProps {
+export default function MateriDetailPage({
+  params,
+}: {
   params: { id: string };
-  searchParams?: { [key: string]: string | string[] | undefined };
-}
-
-export default function MateriDetailPage({ params }: PageProps) {
+}) {
   const { id } = params;
   const [materi, setMateri] = useState<MateriDetail | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
