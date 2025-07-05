@@ -271,7 +271,8 @@ export const updateMateriAction = async (id: string, formData: FormData) => {
       description: formData.get("description") as string,
       langkah_langkah: formData
         .getAll("langkah_langkah")
-        .filter((s) => s.trim() !== ""),
+        .map((item) => String(item)) // Convert to string first
+        .filter((s) => s.trim() !== ""), // Now safe to use trim()
       image_url: imageUrl,
       video_url: videoUrl,
       category: formData.get("category") as string,
