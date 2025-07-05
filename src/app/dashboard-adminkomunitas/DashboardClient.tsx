@@ -1,30 +1,54 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useTransition } from "react";
-// Pastikan nama import ini sesuai dengan nama file Anda, saya asumsikan FormAjukanProduk
+import React, { useState, useEffect, useCallback } from "react";
+// Nama import dipertahankan sesuai permintaan Anda
 import FormAjukanProduk from "@/components/FormAddProduct"; 
 import {
   getProdukKomunitasAction,
-  getPesananUntukKomunitasAction,
-  updateStatusPesananKomunitasAction,
-} from "@/action/productAction";
+  // getPesananUntukKomunitasAction, // Dinonaktifkan sementara karena tidak dipakai
+  // updateStatusPesananKomunitasAction,
+} from "@/action/productAction"; 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2,Package, ShoppingCart, Plus, Edit } from "lucide-react";
+import { Loader2, Package, Plus, Edit } from "lucide-react"; // Ikon yang tidak dipakai dihapus
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
 import FormEditProduk from "@/components/FormEditProduct";
-import { Dialog, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog,  DialogTrigger } from "@/components/ui/dialog";
 
-type Produk = any;
-type Pesanan = any;
+// 1. Tipe data diganti dari 'any' menjadi lebih spesifik
+type Produk = {
+  id: string;
+  judul: string;
+  deskripsi: string;
+  harga: number;
+  stok: number;
+  alamat: string;
+  imageUrl: string | null;
+  status: 'diajukan' | 'ditinjau' | 'disetujui' | 'ditolak';
+  catatan_pemerintah: string | null;
+  created_at: string;
+};
+
+// Tipe Pesanan disimpan untuk referensi nanti
+/*
+type Pesanan = {
+  id: string;
+  jumlah_dipesan: number;
+  status_pesanan: "diproses" | "selesai" | "dibatalkan";
+  catatan_pesanan: string | null;
+  created_at: string;
+  produk: {
+    judul: string;
+  };
+};
+*/
 
 const DashboardAdminKomunitasClient = ({ children }: { children: React.ReactNode; }) => {
   const [produkList, setProdukList] = useState<Produk[]>([]);
-  const [pesananList, setPesananList] = useState<Pesanan[]>([]);
+  // const [pesananList, setPesananList] = useState<Pesanan[]>([]); // Dinonaktifkan sementara
   const [loading, setLoading] = useState({ produk: true, pesanan: true });
-  const [isPending, startTransition] = useTransition();
+  // const [isPending, startTransition] = useTransition(); // Dinonaktifkan karena handleUpdatePesanan tidak dipakai
   const [editingProduk, setEditingProduk] = useState<Produk | null>(null);
 
   const fetchProduk = useCallback(async () => {
@@ -34,18 +58,23 @@ const DashboardAdminKomunitasClient = ({ children }: { children: React.ReactNode
     setLoading((prev) => ({ ...prev, produk: false }));
   }, []);
 
+  // Logika untuk pesanan dinonaktifkan sementara
+  /*
   const fetchPesanan = useCallback(async () => {
     setLoading((prev) => ({ ...prev, pesanan: true }));
     const result = await getPesananUntukKomunitasAction();
     if ("success" in result && result.success && result.data) setPesananList(result.data);
     setLoading((prev) => ({ ...prev, pesanan: false }));
   }, []);
+  */
 
   useEffect(() => {
     fetchProduk();
-    fetchPesanan();
-  }, [fetchProduk, fetchPesanan]);
+    // fetchPesanan();
+  }, [fetchProduk]);
 
+  // Handler untuk pesanan dinonaktifkan sementara
+  /*
   const handleUpdatePesanan = (pesananId: string, status: "selesai" | "dibatalkan") => {
     startTransition(async () => {
       const result = await updateStatusPesananKomunitasAction(pesananId, status);
@@ -57,6 +86,7 @@ const DashboardAdminKomunitasClient = ({ children }: { children: React.ReactNode
       }
     });
   };
+  */
 
   const handleActionComplete = () => {
     setEditingProduk(null);
@@ -74,12 +104,11 @@ const DashboardAdminKomunitasClient = ({ children }: { children: React.ReactNode
         </p>
       </div>
 
-      <Tabs defaultValue="pesanan-masuk" className="w-full">
-        <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-0 h-auto sm:h-10 bg-gray-50 p-2 rounded-lg">
-          <TabsTrigger value="pesanan-masuk" className="flex items-center gap-2 text-xs sm:text-sm py-2 sm:py-1 px-3 data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all duration-200 rounded-md" style={{ color: "#4c7a6b" }}>
-            <ShoppingCart className="h-4 w-4" />
-            <span className="hidden sm:inline">Pesanan Masuk</span><span className="sm:hidden">Pesanan</span>
-          </TabsTrigger>
+      {/* 2. Default tab diubah dan jumlah kolom disesuaikan menjadi 2 */}
+      <Tabs defaultValue="status-produk" className="w-full">
+        <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-0 h-auto sm:h-10 bg-gray-50 p-2 rounded-lg">
+          {/* Tab Pesanan Masuk disembunyikan untuk sementara */}
+          {/* <TabsTrigger value="pesanan-masuk" ... /> */}
           <TabsTrigger value="status-produk" className="flex items-center gap-2 text-xs sm:text-sm py-2 sm:py-1 px-3 data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all duration-200 rounded-md" style={{ color: "#4c7a6b" }}>
             <Package className="h-4 w-4" />
             <span className="hidden sm:inline">Status Produk</span><span className="sm:hidden">Status</span>
@@ -92,7 +121,10 @@ const DashboardAdminKomunitasClient = ({ children }: { children: React.ReactNode
 
         <TabsContent value="status-produk" className="mt-6">
           <Card className="shadow-sm border-0 bg-white">
-            <CardHeader><CardTitle className="text-lg sm:text-xl font-semibold flex items-center gap-2" style={{ color: "#4c7a6b" }}><Package className="h-5 w-5" />Daftar Produk Diajukan</CardTitle><CardDescription>Berikut adalah status dari semua produk yang telah Anda ajukan.</CardDescription></CardHeader>
+            <CardHeader>
+              <CardTitle className="text-lg sm:text-xl font-semibold flex items-center gap-2" style={{ color: "#4c7a6b" }}><Package className="h-5 w-5" />Daftar Produk Diajukan</CardTitle>
+              <CardDescription>Berikut adalah status dari semua produk yang telah Anda ajukan.</CardDescription>
+            </CardHeader>
             <CardContent className="space-y-0 divide-y divide-gray-200">
               {loading.produk ? ( <div className="flex justify-center items-center py-8"><Loader2 className="animate-spin mr-2" style={{ color: "#4c7a6b" }} /><span style={{ color: "#4c7a6b" }}>Memuat produk...</span></div>) : 
               produkList.length > 0 ? (
@@ -107,7 +139,7 @@ const DashboardAdminKomunitasClient = ({ children }: { children: React.ReactNode
                       {(produk.status === "diajukan" || produk.status === "ditolak") && (
                         <Dialog open={editingProduk?.id === produk.id} onOpenChange={(isOpen) => !isOpen && setEditingProduk(null)}>
                           <DialogTrigger asChild><Button variant="ghost" size="icon" onClick={() => setEditingProduk(produk)}><Edit className="h-4 w-4" /></Button></DialogTrigger>
-                           {editingProduk && <FormEditProduk produk={editingProduk} onActionComplete={handleActionComplete} />}
+                          {editingProduk && <FormEditProduk produk={editingProduk} onActionComplete={handleActionComplete} />}
                         </Dialog>
                       )}
                     </div>
@@ -118,9 +150,8 @@ const DashboardAdminKomunitasClient = ({ children }: { children: React.ReactNode
           </Card>
         </TabsContent>
 
-        <TabsContent value="pesanan-masuk" className="mt-6">
-            {/* Konten untuk Pesanan Masuk di sini */}
-        </TabsContent>
+        {/* Konten untuk "Pesanan Masuk" disembunyikan */}
+        {/* <TabsContent value="pesanan-masuk" ... /> */}
 
         <TabsContent value="tambah-produk" className="mt-6">
           <div className="flex justify-center"><FormAjukanProduk onProductSubmitted={fetchProduk} /></div>

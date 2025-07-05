@@ -36,14 +36,14 @@ export default function UserDashboardClient({
     startTransition(async () => {
       const result = await removeSavedMateriAction(materiId);
 
-      if (result.success) {
+      if (result) {
         // Hapus item dari state agar UI langsung terupdate
         setMaterials((currentMaterials) =>
           currentMaterials.filter((materi) => materi.id !== materiId)
         );
         toast.success("Materi berhasil dihapus dari simpanan Anda.");
       } else {
-        toast.error(result.errorMessage || "Gagal menghapus materi.");
+        toast.error( "Gagal menghapus materi.");
       }
     });
   };
@@ -87,7 +87,7 @@ export default function UserDashboardClient({
               <AlertDialogHeader>
                 <AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Tindakan ini akan menghapus materi "{materi.judul}" dari daftar simpanan Anda. Anda tidak dapat mengurungkan tindakan ini.
+                  Tindakan ini akan menghapus materi {materi.judul} dari daftar simpanan Anda. Anda tidak dapat mengurungkan tindakan ini.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>

@@ -1,14 +1,30 @@
 import React from "react";
-import { getAllCategoriesAction } from "@/action/kategoriAction"; // Import Server Action
-import KategoriSdaCard from "@/components/KategoriSdaCard"; // Import komponen kartu kategori
+import { getAllCategoriesAction } from "@/action/kategoriAction";
+import KategoriSdaCard from "@/components/KategoriSdaCard";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { getUser } from "@/auth/server"; // Untuk cek role super_admin
+import { getUser } from "@/auth/server";
 
-// Ini adalah Server Component
+// Define types for the category data
+type Category = {
+  id: string;
+  judul: string;
+  description: string;
+};
+
+type CategoriesResponse =
+  | {
+      success: true;
+      categories: Category[];
+      errorMessage: null;
+    }
+  | {
+      success: false;
+      errorMessage: string;
+    };
+
 export default async function KategoriListPage() {
-  const { categories, errorMessage } = await getAllCategoriesAction(); // Ambil semua kategori
-
+  const result = (await getAllCategoriesAction()) as CategoriesResponse;
   const currentUser = await getUser();
   const isSuperAdmin = currentUser?.role === "super_admin";
 
@@ -18,7 +34,7 @@ export default async function KategoriListPage() {
         <h1 className="text-3xl font-bold" style={{ color: "#4c7a6b" }}>
           Semua Kategori SDA
         </h1>
-        {isSuperAdmin && ( // Tampilkan tombol hanya jika user adalah super_admin
+        {isSuperAdmin && (
           <Link href="/dashboard-superadmin?tab=add-kategori" passHref>
             <Button style={{ backgroundColor: "#4c7a6b", color: "#fff" }}>
               + Tambah Kategori
@@ -27,14 +43,14 @@ export default async function KategoriListPage() {
         )}
       </div>
 
-      {errorMessage ? (
+      {!result.success ? (
         <div className="text-center text-red-500 py-10">
           <p className="text-xl">Terjadi kesalahan saat memuat kategori:</p>
-          <p>{errorMessage}</p>
+          <p>{result.errorMessage}</p>
         </div>
-      ) : categories && categories.length > 0 ? (
+      ) : result.categories.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {categories.map((kategori) => (
+          {result.categories.map((kategori: Category) => (
             <KategoriSdaCard key={kategori.id} kategori={kategori} />
           ))}
         </div>

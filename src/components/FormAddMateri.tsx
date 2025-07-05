@@ -24,6 +24,7 @@ import {
 import { createMateriAction } from "@/action/materiDetails";
 import { getAllCategoriesAction } from "@/action/kategoriAction";
 
+// ✅ Perbaikan tipe respons
 interface Category {
   id: string;
   judul: string;
@@ -32,7 +33,7 @@ interface Category {
 interface CategoryApiResponse {
   success?: boolean;
   categories?: Category[];
-  errorMessage?: string;
+  errorMessage?: string | null;
 }
 
 const FormAddMateri = () => {
@@ -55,13 +56,16 @@ const FormAddMateri = () => {
           setSelectedCategoryId(result.categories[0].id);
         }
       } else {
-        setCategoryError(
-          result.errorMessage ||
+        toast.error(
+          result.errorMessage ??
             "Gagal memuat kategori. Mohon tambahkan kategori terlebih dahulu."
         );
+        setCategoryError("Kategori tidak tersedia.");
       }
+
       setLoadingCategories(false);
     };
+
     fetchCategories();
   }, []);
 
@@ -92,13 +96,9 @@ const FormAddMateri = () => {
       const result = await createMateriAction(formData);
 
       if ("success" in result && result.success) {
-        toast.success(
-          typeof result.message === "string" && result.message
-            ? result.message
-            : "Materi berhasil ditambahkan!"
-        );
+        toast.success("Materi berhasil ditambahkan!");
       } else {
-        toast.error(result.errorMessage || "Gagal menambahkan materi.");
+        toast.error(result.errorMessage ?? "Gagal menambahkan materi.");
       }
     });
   };

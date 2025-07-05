@@ -10,6 +10,26 @@ import { getUser } from "@/auth/server";
 import SearchMateri from "@/components/SearchMateri";
 import FilterMateriByCategory from "@/components/FilterMateriByCategory";
 
+// Define the type for the API response
+interface MateriApiResponse {
+  success?: boolean;
+  materiList?: Materi[];
+  errorMessage: string | null;
+}
+
+// Define the type for search results
+interface SearchResult {
+  id: string;
+  judul: string;
+  description: string;
+  category: string;
+  image_url: string;
+  video_url: string;
+  langkah_langkah: string;
+  uploader_id: string;
+  created_at: string;
+}
+
 export default function MateriListPage() {
   const [materiList, setMateriList] = useState<Materi[]>([]);
   const [filteredMateri, setFilteredMateri] = useState<Materi[]>([]);
@@ -18,7 +38,7 @@ export default function MateriListPage() {
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -26,7 +46,7 @@ export default function MateriListPage() {
         setIsLoading(true);
 
         // Fetch all materi with category info
-        const result = await getAllMateriAction();
+        const result = await getAllMateriAction() as MateriApiResponse;
         if (result.errorMessage) {
           setErrorMessage(result.errorMessage);
         } else if (result.materiList) {
@@ -55,29 +75,34 @@ export default function MateriListPage() {
     // Apply category filter first
     if (selectedCategory) {
       filtered = filtered.filter(
-        (materi) => materi.category === selectedCategory
+        (materi) => {
+          // Type assertion or safe access for category property
+          return (materi as Materi & { category?: string }).category === selectedCategory;
+        }
       );
     }
 
     // If there's an active search, use search results instead
     if (isSearching && searchResults.length > 0) {
-      const searchResultsConverted = searchResults.map((item) => ({
+      const searchResultsConverted = searchResults.map((item): Materi => ({
         id: item.id,
         judul: item.judul,
         description: item.description,
-        category: item.category,
         image_url: item.image_url,
         video_url: item.video_url,
         langkah_langkah: item.langkah_langkah,
         uploader_id: item.uploader_id,
         created_at: item.created_at,
-        // Add other required properties from your Materi interface
-      })) as Materi[];
+        // Add category as an extended property
+        ...(item.category && { category: item.category }),
+      }));
 
       // Apply category filter to search results if category is selected
       if (selectedCategory) {
         filtered = searchResultsConverted.filter(
-          (materi) => materi.category === selectedCategory
+          (materi) => {
+            return (materi as Materi & { category?: string }).category === selectedCategory;
+          }
         );
       } else {
         filtered = searchResultsConverted;
@@ -92,7 +117,7 @@ export default function MateriListPage() {
     applyFilters();
   }, [materiList, selectedCategory, searchResults, isSearching]);
 
-  const handleSearchResults = (results: any[]) => {
+  const handleSearchResults = (results: SearchResult[]) => {
     setSearchResults(results);
     if (results.length === 0) {
       setIsSearching(false);

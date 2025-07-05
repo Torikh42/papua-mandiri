@@ -1,3 +1,5 @@
+// types/index.ts
+
 export interface Kategori {
   id: string;
   judul: string;
@@ -9,24 +11,44 @@ export interface Materi {
   judul: string;
   description?: string;
   Kategori?: Kategori;
-  createdAt?: Date;
-  updatedAt?: Date;
+  created_at: string; // ← Ganti ke string agar cocok dengan hasil API dan komponen
+  updated_at?: string;
+  image_url: string | null; // ← Tambahkan agar tidak error di MateriCard
+  views_count?: number;
 }
 
-export interface MateriResult {
-  success: boolean;
-  materiList: Materi[];
-  errorMessage?: string;
-}
+export type MateriResult =
+  | {
+      success: true;
+      materiList: Materi[];
+      errorMessage: null;
+    }
+  | {
+      success: false;
+      materiList?: never;
+      errorMessage: string;
+    };
 
-export interface KategoriResult {
-  success: boolean;
-  categories: Kategori[];
-  errorMessage?: string;
-}
+export type KategoriResult =
+  | {
+      success: true;
+      categories: Kategori[];
+      errorMessage: null;
+    }
+  | {
+      success: false;
+      categories?: never;
+      errorMessage: string;
+    };
 
-export interface PopularMateriResult {
-  success: boolean;
-  popularMateriList: Materi[];
-  errorMessage?: string;
-}
+export type PopularMateriResult =
+  | {
+      success: true;
+      popularMateriList: Materi[];
+      errorMessage: null;
+    }
+  | {
+      success: false;
+      popularMateriList?: never;
+      errorMessage: string;
+    };

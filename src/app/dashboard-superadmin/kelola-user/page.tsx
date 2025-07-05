@@ -29,7 +29,15 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 
-type User = any;
+type User = {
+  id: string;
+  user_name: string;
+  user_email: string;
+  role: string;
+  location: string;
+};
+
+type SearchAttribute = "user_name" | "user_email" | "location";
 
 const UserTable = ({
   title,
@@ -71,14 +79,12 @@ const UserTable = ({
                 <td className="px-4 py-3">
                   {(currentPage ? (currentPage - 1) * 5 : 0) + index + 1}
                 </td>
-                {/* PERBAIKAN: Gunakan user.user_name */}
                 <td className="px-4 py-3 font-medium text-gray-900">
                   {user.user_name || "-"}
                 </td>
                 <td className="px-4 py-3">
                   <Badge variant="secondary">{user.role || "user"}</Badge>
                 </td>
-                {/* PERBAIKAN: Gunakan user.location */}
                 <td className="px-4 py-3">{user.location || "-"}</td>
                 <td className="px-4 py-3">{user.user_email}</td>
                 <td className="px-4 py-3 text-center">
@@ -155,10 +161,7 @@ const KelolaUserPage = () => {
   const [searchResults, setSearchResults] = useState<User[]>([]);
   const [latestUsers, setLatestUsers] = useState<User[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  // PERBAIKAN: Sesuaikan state awal dengan nama kolom asli
-  const [searchAttribute, setSearchAttribute] = useState<
-    "user_name" | "user_email" | "location"
-  >("user_email");
+  const [searchAttribute, setSearchAttribute] = useState<SearchAttribute>("user_email");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [loading, setLoading] = useState({ search: false, latest: true });
@@ -166,7 +169,6 @@ const KelolaUserPage = () => {
 
   const fetchLatestUsers = useCallback(async (page = 1) => {
     setLoading((prev) => ({ ...prev, latest: true }));
-    // Gunakan 'user_name' sebagai default jika perlu, atau biarkan kosong
     const result = await searchUsersAction("", "user_email", page, 5);
     if ("success" in result && result.success && result.data) {
       setLatestUsers(result.data);
@@ -202,7 +204,7 @@ const KelolaUserPage = () => {
         fetchLatestUsers(currentPage);
         setSearchResults((prev) => prev.filter((user) => user.id !== userId));
       } else {
-        toast.error(result.errorMessage || "Gagal menghapus user.");
+        toast.error("Gagal menghapus user.");
       }
     });
   };
@@ -230,10 +232,9 @@ const KelolaUserPage = () => {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          {/* PERBAIKAN: Sesuaikan value pada SelectItem */}
           <Select
             value={searchAttribute}
-            onValueChange={(value) => setSearchAttribute(value as any)}
+            onValueChange={(value: string) => setSearchAttribute(value as SearchAttribute)}
           >
             <SelectTrigger className="w-full sm:w-[180px]">
               <SelectValue placeholder="Pilih Atribut" />
