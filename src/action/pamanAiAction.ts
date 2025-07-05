@@ -1,14 +1,17 @@
-// action/pamanAiAction.ts
 "use server";
 
 import { createClient } from "@/auth/server";
 import openai from "@/openai";
+import { formatAiResponse } from "@/utils/formatter";
+import { handleError } from "@/lib/utils";
 
+// Tipe untuk riwayat percakapan yang dikirim dari client
 type ChatMessage = {
   role: "user" | "assistant";
   content: string;
 };
 
+// Tipe untuk data konteks yang diambil dari database
 type MateriContext = {
   judul: string;
   description: string;
@@ -26,32 +29,24 @@ export const askPamanAiAction = async (
   try {
     const supabase = await createClient();
 
-    // --- PERBAIKAN LOGIKA PENCARIAN UTAMA DI SINI ---
-
-    // 1. Pecah pertanyaan menjadi kata-kata kunci yang unik.
-    // Contoh: "langkah langkah minuman" -> ["langkah", "minuman"]
+    // 1. Ambil konteks dari database berdasarkan kata kunci pertanyaan
     const keywords = [...new Set(question.toLowerCase().split(" "))];
-
-    // 2. Buat filter pencarian untuk setiap kata kunci pada kolom judul dan deskripsi.
-    // Contoh: ["judul.ilike.%langkah%", "description.ilike.%langkah%", "judul.ilike.%minuman%", ...]
     const searchFilters = keywords
       .map((key) => `judul.ilike.%${key}%,description.ilike.%${key}%`)
       .join(",");
 
-    // 3. Jalankan query dengan filter yang lebih fleksibel.
     const { data: contextData, error: contextError } = await supabase
       .from("Materi")
       .select("judul, description, langkah_langkah")
-      .or(searchFilters) // Menggunakan filter yang baru dibuat
-      .limit(50);
-
-    // --- AKHIR DARI PERBAIKAN ---
+      .or(searchFilters)
+      .limit(5);
 
     if (contextError) {
       console.error("Error fetching context:", contextError);
       return { error: "Gagal mengambil konteks materi dari database." };
     }
 
+    // 2. Format konteks yang ditemukan untuk diberikan kepada AI
     const formattedContext =
       contextData && contextData.length > 0
         ? contextData
@@ -64,7 +59,8 @@ export const askPamanAiAction = async (
             .join("\n\n---\n\n")
         : "Tidak ada konteks yang ditemukan mengenai topik ini di dalam database.";
 
-    const systemPrompt = `Anda adalah "Paman AI", asisten pintar dari situs Papua Mandiri. Jawablah pertanyaan pengguna HANYA berdasarkan konteks materi yang diberikan. Jika konteks tidak ditemukan, katakan dengan sopan bahwa informasi tersebut tidak tersedia. Format jawaban Anda harus rapi dan mudah dibaca seperti artikel. Gunakan Markdown:\n\n- Gunakan \`###\` untuk judul besar\n- Gunakan \`**\` untuk menebalkan\n- Gunakan daftar terurut atau bullet jika perlu\n- Hindari tanda kutip berlebihan\n\nJawab selalu dalam Bahasa Indonesia.`;
+    // 3. Siapkan prompt untuk AI
+    const systemPrompt = `Anda adalah "Paman AI", asisten pintar dari situs Papua Mandiri. Jawablah pertanyaan pengguna HANYA berdasarkan konteks materi yang diberikan. Jika konteks tidak ditemukan, katakan dengan sopan bahwa informasi tersebut tidak tersedia. Format jawaban Anda harus rapi dan mudah dibaca seperti artikel. Gunakan Markdown:\n\n- Gunakan \`###\` untuk judul besar\n- Gunakan \`**\` untuk menebalkan\n- Gunakan daftar terurut atau bullet jika perlu.\n\nJawab selalu dalam Bahasa Indonesia.`;
 
     const userMessageWithContext = `Konteks materi:\n\n${formattedContext}\n\n---\n\nJawab pertanyaan berikut dalam bentuk artikel terformat: "${question}"`;
 
@@ -74,20 +70,26 @@ export const askPamanAiAction = async (
       { role: "user", content: userMessageWithContext },
     ];
 
+    // 4. Panggil API AI
     const completion = await openai.chat.completions.create({
-      model: "deepseek/deepseek-r1-0528-qwen3-8b:free",
+      model: "deepseek/deepseek-chat",
       messages: messages as any,
     });
 
-    const response = completion.choices[0]?.message?.content;
+    const rawResponse = completion.choices[0]?.message?.content;
 
-    if (!response) {
+    if (!rawResponse) {
       return { error: "AI tidak memberikan jawaban." };
     }
+    
+    // 5. Bersihkan dan format respons dari AI
+    const formattedResponse = formatAiResponse(rawResponse);
 
-    return { response };
+    // 6. Kembalikan respons yang sudah bersih
+    return { response: formattedResponse };
+
   } catch (error) {
     console.error("Error in Paman AI Action:", error);
-    return { error: "Terjadi kesalahan pada server Paman AI." };
+    return handleError(error);
   }
 };

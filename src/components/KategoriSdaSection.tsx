@@ -36,19 +36,13 @@ const KategoriSection: React.FC = async () => {
     <section className="py-12 bg-white">
       <div className="container mx-auto px-4 sm:px-6">
         <div className="flex justify-between items-center mb-8">
-          <h2 className="text-2xl font-bold" style={{ color: "#4C7A6b" }}>
-            Jelajahi Kategori SDA
-          </h2>
-          <Link href="/kategori-materi" passHref>
-            {" "}
-            {/* Link ke halaman daftar kategori lengkap */}
-            <Button
-              variant="outline"
-              className="text-green-600 border-green-200 hover:bg-green-50"
-            >
-              Lihat Semua Kategori
-            </Button>
-          </Link>
+          <Button
+            asChild
+            variant="outline"
+            className="text-green-600 border-green-200 hover:bg-green-50"
+          >
+            <Link href="/kategori-materi">Lihat Semua Kategori</Link>
+          </Button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

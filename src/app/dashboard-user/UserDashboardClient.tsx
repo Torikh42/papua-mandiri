@@ -76,6 +76,7 @@ export default function UserDashboardClient({
                 variant="destructive"
                 size="icon"
                 className="absolute top-2 right-2 z-10 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                style ={{ backgroundColor: "#4c7a6b" }} // Warna merah
                 aria-label="Hapus dari simpanan"
                 disabled={isPending}
               >
@@ -91,7 +92,11 @@ export default function UserDashboardClient({
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Batal</AlertDialogCancel>
-                <AlertDialogAction onClick={() => handleRemove(materi.id)}>
+                <AlertDialogAction
+                  style={{ backgroundColor: "#4c7a6b", color: "#fff" }}
+                  className="hover:brightness-90 transition"
+                  onClick={() => handleRemove(materi.id)}
+                >
                   Ya, Hapus
                 </AlertDialogAction>
               </AlertDialogFooter>

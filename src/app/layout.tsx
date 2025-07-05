@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "@/styles/globals.css";
-import { Toaster } from "sonner"; // Tambahkan ini
+import { Toaster } from "sonner";
 import Navbar from "@/components/Navbar";
 import { getUser } from "@/auth/server";
-import Footer from "@/components/Footer";
+import LayoutWrapper from "@/components/LayoutWrapper"; // <-- 1. Import komponen baru
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -26,7 +26,6 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Get user (now with role processed in auth/server.ts)
   const user = await getUser();
 
   return (
@@ -35,9 +34,9 @@ export default async function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <Navbar user={user} />
-        <Toaster /> {/* Tambahkan ini agar toast bisa digunakan */}
-        {children}
-        <Footer />
+        <Toaster />
+        {/* 2. Bungkus {children} dengan LayoutWrapper dan hapus <Footer /> */}
+        <LayoutWrapper>{children}</LayoutWrapper>
       </body>
     </html>
   );

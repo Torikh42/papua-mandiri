@@ -1,4 +1,5 @@
 "use client";
+
 import React, { useState, useTransition, useEffect } from "react";
 import {
   Card,
@@ -12,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
-import { Textarea } from "./ui/textarea";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -25,7 +26,13 @@ import { getAllCategoriesAction } from "@/action/kategoriAction";
 
 interface Category {
   id: string;
-  name: string;
+  judul: string;
+}
+
+interface CategoryApiResponse {
+  success?: boolean;
+  categories?: Category[];
+  errorMessage?: string;
 }
 
 const FormAddMateri = () => {
@@ -40,15 +47,12 @@ const FormAddMateri = () => {
     const fetchCategories = async () => {
       setLoadingCategories(true);
       setCategoryError(null);
-      const result = await getAllCategoriesAction();
-      if ("success" in result && result.success && result.categories) {
-        const mappedCategories = result.categories.map((cat: any) => ({
-          id: cat.id,
-          name: cat.judul,
-        }));
-        setCategories(mappedCategories);
-        if (mappedCategories.length > 0) {
-          setSelectedCategoryId(mappedCategories[0].id);
+      const result: CategoryApiResponse = await getAllCategoriesAction();
+
+      if (result.success && Array.isArray(result.categories)) {
+        setCategories(result.categories);
+        if (result.categories.length > 0) {
+          setSelectedCategoryId(result.categories[0].id);
         }
       } else {
         setCategoryError(
@@ -79,10 +83,8 @@ const FormAddMateri = () => {
   const handleSubmit = (formData: FormData) => {
     startTransition(async () => {
       formData.set("category", selectedCategoryId);
-
-      // Hapus langkah_langkah lama di FormData
       formData.delete("langkah_langkah");
-      // Tambahkan langkah_langkah satu per satu (supaya getAll di server menghasilkan array)
+
       langkah_langkah
         .filter((s) => s.trim() !== "")
         .forEach((item) => formData.append("langkah_langkah", item));
@@ -91,8 +93,8 @@ const FormAddMateri = () => {
 
       if ("success" in result && result.success) {
         toast.success(
-          typeof (result as any).message === "string" && (result as any).message
-            ? (result as any).message
+          typeof result.message === "string" && result.message
+            ? result.message
             : "Materi berhasil ditambahkan!"
         );
       } else {
@@ -102,17 +104,22 @@ const FormAddMateri = () => {
   };
 
   return (
-    <Card className="w-full max-w-lg mx-auto">
+    <Card className="w-full max-w-2xl mx-auto border border-gray-300 shadow-xl overflow-hidden">
       <CardHeader>
-        <CardTitle>Tambah Materi Baru</CardTitle>
-        <CardDescription>
-          Isi detail materi edukasi baru yang akan ditambahkan.
+        <CardTitle style={{ color: "#4c7a6b" }} className="text-2xl">
+          Tambah Materi Baru
+        </CardTitle>
+        <CardDescription style={{ color: "#4c7a6b" }}>
+          Isi detail materi edukasi baru yang akan ditambahkan ke sistem.
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form action={handleSubmit} className="grid gap-4">
+        <form action={handleSubmit} className="grid gap-5">
+          {/* Judul */}
           <div className="grid gap-2">
-            <Label htmlFor="judul">Judul Materi</Label>
+            <Label htmlFor="judul" style={{ color: "#4c7a6b" }}>
+              Judul Materi
+            </Label>
             <Input
               id="judul"
               name="judul"
@@ -121,8 +128,12 @@ const FormAddMateri = () => {
               disabled={isPending}
             />
           </div>
+
+          {/* Deskripsi */}
           <div className="grid gap-2">
-            <Label htmlFor="description">Deskripsi</Label>
+            <Label htmlFor="description" style={{ color: "#4c7a6b" }}>
+              Deskripsi
+            </Label>
             <Textarea
               id="description"
               name="description"
@@ -132,8 +143,11 @@ const FormAddMateri = () => {
             />
           </div>
 
+          {/* Kategori */}
           <div className="grid gap-2">
-            <Label htmlFor="category">Kategori SDA</Label>
+            <Label htmlFor="category" style={{ color: "#4c7a6b" }}>
+              Kategori SDA
+            </Label>
             {loadingCategories ? (
               <p className="text-sm text-gray-500 flex items-center">
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Memuat
@@ -143,7 +157,7 @@ const FormAddMateri = () => {
               <p className="text-sm text-red-500">{categoryError}</p>
             ) : categories.length === 0 ? (
               <p className="text-sm text-yellow-600">
-                Belum ada kategori. Silakan tambahkan kategori terlebih dahulu.
+                Belum ada kategori. Tambahkan kategori terlebih dahulu.
               </p>
             ) : (
               <Select
@@ -151,13 +165,13 @@ const FormAddMateri = () => {
                 value={selectedCategoryId}
                 disabled={isPending}
               >
-                <SelectTrigger id="category" name="category">
+                <SelectTrigger id="category" name="category" className="border">
                   <SelectValue placeholder="Pilih Kategori" />
                 </SelectTrigger>
                 <SelectContent>
                   {categories.map((cat) => (
                     <SelectItem key={cat.id} value={cat.id}>
-                      {cat.name}
+                      {cat.judul}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -165,29 +179,37 @@ const FormAddMateri = () => {
             )}
           </div>
 
+          {/* Upload Gambar */}
           <div className="grid gap-2">
-            <Label htmlFor="imageUrl">URL Gambar (Opsional)</Label>
+            <Label htmlFor="imageFile" style={{ color: "#4c7a6b" }}>
+              Gambar Materi (Opsional)
+            </Label>
             <Input
-              id="imageUrl"
-              name="imageUrl"
-              placeholder="http://example.com/gambar.jpg"
-              type="url"
-              disabled={isPending}
-            />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="videoUrl">URL Video (Opsional)</Label>
-            <Input
-              id="videoUrl"
-              name="videoUrl"
-              placeholder="http://example.com/video.mp4"
-              type="url"
+              id="imageFile"
+              name="imageFile"
+              type="file"
+              accept="image/*"
               disabled={isPending}
             />
           </div>
 
+          {/* Upload Video */}
           <div className="grid gap-2">
-            <Label>Langkah-Langkah</Label>
+            <Label htmlFor="videoFile" style={{ color: "#4c7a6b" }}>
+              Video Materi (Opsional)
+            </Label>
+            <Input
+              id="videoFile"
+              name="videoFile"
+              type="file"
+              accept="video/*"
+              disabled={isPending}
+            />
+          </div>
+
+          {/* Langkah-langkah */}
+          <div className="grid gap-2">
+            <Label style={{ color: "#4c7a6b" }}>Langkah-Langkah</Label>
             {langkah_langkah.map((langkah, index) => (
               <div key={index} className="flex gap-2 items-center">
                 <Input
@@ -215,26 +237,27 @@ const FormAddMateri = () => {
               variant="secondary"
               onClick={addLangkah}
               disabled={isPending}
+              className="text-sm"
             >
               + Tambah Langkah
             </Button>
           </div>
 
-            <Button
+          {/* Tombol Submit */}
+          <Button
             type="submit"
             disabled={isPending || loadingCategories || categories.length === 0}
-            style={{ backgroundColor: "#4c7a6b", color: "#fff" }}
-            className="hover:opacity-90"
-            >
+            className="bg-[#4c7a6b] hover:bg-[#3d655b] text-white font-semibold transition-all"
+          >
             {isPending ? (
               <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Menyimpan...
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Menyimpan...
               </>
             ) : (
               "Tambah Materi"
             )}
-            </Button>
+          </Button>
         </form>
       </CardContent>
     </Card>

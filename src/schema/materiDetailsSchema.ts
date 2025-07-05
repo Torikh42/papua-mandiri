@@ -8,12 +8,13 @@ export const materiSchema = z.object({
 
   description: z.string().min(10, "Deskripsi materi minimal 10 karakter"),
   image_url: z
-  .union([z.string().url("URL video tidak valid"), z.literal("")])
-  .optional(),
+    .union([z.string().url("URL video tidak valid"), z.literal("")])
+    .optional(),
   video_url: z
     .union([z.string().url("URL video tidak valid"), z.literal("")])
     .optional(),
   step: z
     .array(z.string().min(1, "Langkah tidak boleh kosong"))
     .min(1, "Setidaknya satu langkah diperlukan (Bahasa Indonesia)"),
+  category: z.string().uuid("Kategori tidak valid").optional(), 
 });

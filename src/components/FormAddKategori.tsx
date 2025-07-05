@@ -12,9 +12,9 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
-import { createCategoryAction } from "@/action/kategoriAction"; // Sesuaikan path jika dipisah
-import { Textarea } from "./ui/textarea"; // Import Textarea Shadcn
+import { Loader2, Plus } from "lucide-react";
+import { createCategoryAction } from "@/action/kategoriAction";
+import { Textarea } from "./ui/textarea";
 
 const FormAddKategori = () => {
   const [isPending, startTransition] = useTransition();
@@ -22,31 +22,50 @@ const FormAddKategori = () => {
   const [description, setDescription] = useState("");
 
   const handleSubmit = (formData: FormData) => {
-    startTransition(async () => {
-      const result = await createCategoryAction(formData);
+    if (!judul.trim()) {
+      toast.error("Nama kategori tidak boleh kosong");
+      return;
+    }
 
-      if ("success" in result && result.success) {
-        toast.success(`Kategori '${judul}' berhasil ditambahkan!`);
-        setJudul(""); // Reset form
-        setDescription(""); // Reset form
-      } else {
-        toast.error(result.errorMessage || "Gagal menambahkan kategori.");
+    startTransition(async () => {
+      try {
+        const result = await createCategoryAction(formData);
+
+        if ("success" in result && result.success) {
+          toast.success(`Kategori '${judul}' berhasil ditambahkan!`);
+          setJudul("");
+          setDescription("");
+        } else {
+          toast.error(result.errorMessage || "Gagal menambahkan kategori.");
+        }
+      } catch (error) {
+        toast.error("Terjadi kesalahan saat menambahkan kategori.");
+        console.error("Error adding category:", error);
       }
     });
   };
 
   return (
-    <Card className="w-full max-w-lg mx-auto">
-      <CardHeader>
-        <CardTitle>Tambah Kategori Baru</CardTitle>
+    <Card className="w-full max-w-2xl mx-auto shadow-lg">
+      <CardHeader className="pb-6">
+        <CardTitle
+          className="flex items-center gap-2"
+          style={{ color: "#4c7a6b" }}
+        >
+          <Plus className="h-5 w-5" />
+          Tambah Kategori Baru
+        </CardTitle>
         <CardDescription>
-          Tambahkan kategori SDA untuk materi atau produk.
+          Buat kategori baru untuk mengorganisir materi SDA Anda dengan lebih
+          baik.
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form action={handleSubmit} className="grid gap-4">
-          <div className="grid gap-2">
-            <Label htmlFor="judul">Nama Kategori</Label>
+        <form action={handleSubmit} className="space-y-6">
+          <div className="space-y-2">
+            <Label htmlFor="judul" className="text-sm font-medium">
+              Nama Kategori <span className="text-red-500">*</span>
+            </Label>
             <Input
               id="judul"
               name="judul"
@@ -55,33 +74,61 @@ const FormAddKategori = () => {
               value={judul}
               onChange={(e) => setJudul(e.target.value)}
               disabled={isPending}
+              className="focus:border-[#4c7a6b] focus:ring-[#4c7a6b]"
             />
           </div>
-          <div className="grid gap-2">
-            <Label htmlFor="description">Deskripsi (Opsional)</Label>
+
+          <div className="space-y-2">
+            <Label htmlFor="description" className="text-sm font-medium">
+              Deskripsi
+            </Label>
             <Textarea
               id="description"
               name="description"
-              placeholder="Deskripsi singkat tentang kategori ini."
+              placeholder="Berikan deskripsi singkat tentang kategori ini..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               disabled={isPending}
+              rows={4}
+              className="focus:border-[#4c7a6b] focus:ring-[#4c7a6b]"
             />
+            <p className="text-xs text-gray-500">
+              Deskripsi akan membantu pengguna memahami kategori ini dengan
+              lebih baik.
+            </p>
           </div>
+
+          <div className="flex gap-3 pt-4">
             <Button
-            type="submit"
-            disabled={isPending}
-            style={{ backgroundColor: "#4c7a6b", color: "#fff" }}
+              type="submit"
+              disabled={isPending || !judul.trim()}
+              className="flex-1 bg-[#4c7a6b] hover:bg-[#3d6156] text-white"
             >
-            {isPending ? (
-              <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Menyimpan...
-              </>
-            ) : (
-              "Tambah Kategori"
-            )}
+              {isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Menyimpan...
+                </>
+              ) : (
+                <>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Tambah Kategori
+                </>
+              )}
             </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setJudul("");
+                setDescription("");
+              }}
+              disabled={isPending}
+              className="px-6"
+            >
+              Reset
+            </Button>
+          </div>
         </form>
       </CardContent>
     </Card>

@@ -1,14 +1,14 @@
 // app/materi/page.tsx
-"use client"
+"use client";
 
-import React, { useState, useEffect } from 'react';
-import { getAllMateriAction } from '@/action/materiDetails';
-import MateriCard, { Materi } from '@/components/MateriCard';
-import { Button } from '@/components/ui/button';
-import Link from 'next/link';
-import { getUser } from '@/auth/server';
-import SearchMateri from '@/components/SearchMateri';
-import FilterMateriByCategory from '@/components/FilterMateriByCategory';
+import React, { useState, useEffect } from "react";
+import { getAllMateriAction } from "@/action/materiDetails";
+import MateriCard, { Materi } from "@/components/MateriCard";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { getUser } from "@/auth/server";
+import SearchMateri from "@/components/SearchMateri";
+import FilterMateriByCategory from "@/components/FilterMateriByCategory";
 
 export default function MateriListPage() {
   const [materiList, setMateriList] = useState<Materi[]>([]);
@@ -24,7 +24,7 @@ export default function MateriListPage() {
     const fetchData = async () => {
       try {
         setIsLoading(true);
-        
+
         // Fetch all materi with category info
         const result = await getAllMateriAction();
         if (result.errorMessage) {
@@ -54,12 +54,14 @@ export default function MateriListPage() {
 
     // Apply category filter first
     if (selectedCategory) {
-      filtered = filtered.filter(materi => materi.category === selectedCategory);
+      filtered = filtered.filter(
+        (materi) => materi.category === selectedCategory
+      );
     }
 
     // If there's an active search, use search results instead
     if (isSearching && searchResults.length > 0) {
-      const searchResultsConverted = searchResults.map(item => ({
+      const searchResultsConverted = searchResults.map((item) => ({
         id: item.id,
         judul: item.judul,
         description: item.description,
@@ -74,7 +76,9 @@ export default function MateriListPage() {
 
       // Apply category filter to search results if category is selected
       if (selectedCategory) {
-        filtered = searchResultsConverted.filter(materi => materi.category === selectedCategory);
+        filtered = searchResultsConverted.filter(
+          (materi) => materi.category === selectedCategory
+        );
       } else {
         filtered = searchResultsConverted;
       }
@@ -114,20 +118,24 @@ export default function MateriListPage() {
   return (
     <div className="container mx-auto py-8 px-4 sm:px-6">
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold" style={{ color: "#4c7a6b" }}>Daftar Materi Edukasi</h1>
+        <h1 className="text-3xl font-bold" style={{ color: "#4c7a6b" }}>
+          Daftar Materi Edukasi
+        </h1>
         {isSuperAdmin && (
           <Link href="/dashboard-superadmin?tab=add-materi" passHref>
-            <Button style={{ backgroundColor: "#4c7a6b", color: "#fff" }}>+ Tambah Materi</Button>
+            <Button style={{ backgroundColor: "#4c7a6b", color: "#fff" }}>
+              + Tambah Materi
+            </Button>
           </Link>
         )}
       </div>
 
-      <SearchMateri 
-        onResults={handleSearchResults} 
+      <SearchMateri
+        onResults={handleSearchResults}
         selectedCategory={selectedCategory}
       />
-      
-      <FilterMateriByCategory 
+
+      <FilterMateriByCategory
         onCategoryFilter={handleCategoryFilter}
         selectedCategory={selectedCategory}
       />
@@ -148,20 +156,23 @@ export default function MateriListPage() {
             <div>
               <p className="text-xl">Tidak ada materi yang ditemukan.</p>
               <p className="text-sm mt-2">
-                {isSearching && selectedCategory ? 
-                  "Coba ubah kata kunci pencarian atau pilih kategori yang berbeda." :
-                  isSearching ? 
-                  "Coba ubah kata kunci pencarian." :
-                  "Coba pilih kategori yang berbeda."
-                }
+                {isSearching && selectedCategory
+                  ? "Coba ubah kata kunci pencarian atau pilih kategori yang berbeda."
+                  : isSearching
+                  ? "Coba ubah kata kunci pencarian."
+                  : "Coba pilih kategori yang berbeda."}
               </p>
             </div>
           ) : (
             <>
               <p className="text-xl">Belum ada materi tersedia.</p>
               {isSuperAdmin && (
-                <p className="mt-2">Silakan {" "}
-                  <Link href="/dashboard-superadmin?tab=add-materi" className="text-blue-500 hover:underline">
+                <p className="mt-2">
+                  Silakan{" "}
+                  <Link
+                    href="/dashboard-superadmin?tab=add-materi"
+                    className="text-blue-500 hover:underline"
+                  >
                     tambah materi baru
                   </Link>
                   .

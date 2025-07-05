@@ -1,7 +1,18 @@
 "use server";
 import { createClient } from "@/auth/server";
+import cloudinary from "@/lib/cloudinary";
 import { handleError } from "@/lib/utils";
 import { materiSchema } from "@/schema/materiDetailsSchema";
+import { revalidatePath } from "next/cache";
+
+interface UploadResult {
+  secure_url: string;
+}
+
+const MATERI_WITH_KATEGORI_SELECT = `
+  *,
+  Kategori ( id, judul )
+`;
 
 export type UserRole =
   | "user"
@@ -51,78 +62,110 @@ const checkRequiredRole = async (
 export const createMateriAction = async (formData: FormData) => {
   try {
     const supabase = await createClient();
-
-    // Otorisasi: Hanya super_admin yang bisa membuat materi
     const uploaderId = await checkRequiredRole(supabase, "super_admin");
 
-    // Ambil data dari FormData
+    // 1. Ambil file gambar dan video dari FormData
+    const imageFile = formData.get("imageFile") as File | null;
+    const videoFile = formData.get("videoFile") as File | null;
+    let imageUrl: string | null = null;
+    let videoUrl: string | null = null;
+
+    // --- PROSES UPLOAD GAMBAR (JIKA ADA) ---
+    if (imageFile && imageFile.size > 0) {
+      const imageBuffer = Buffer.from(await imageFile.arrayBuffer());
+      const imgResult = await new Promise<UploadResult | null>(
+        (resolve, reject) => {
+          const stream = cloudinary.uploader.upload_stream(
+            { folder: "papua_mandiri_materi_images" },
+            (error, result) => {
+              if (error) reject(error);
+              if (result) resolve(result as UploadResult);
+            }
+          );
+          stream.end(imageBuffer);
+        }
+      );
+      imageUrl = imgResult?.secure_url || null;
+    }
+
+    // --- PROSES UPLOAD VIDEO (JIKA ADA) ---
+    if (videoFile && videoFile.size > 0) {
+      const videoBuffer = Buffer.from(await videoFile.arrayBuffer());
+      const vidResult = await new Promise<UploadResult | null>(
+        (resolve, reject) => {
+          const stream = cloudinary.uploader.upload_stream(
+            {
+              folder: "papua_mandiri_materi_videos",
+              resource_type: "video", // <-- Beri tahu Cloudinary ini adalah video
+            },
+            (error, result) => {
+              if (error) reject(error);
+              if (result) resolve(result as UploadResult);
+            }
+          );
+          stream.end(videoBuffer);
+        }
+      );
+      videoUrl = vidResult?.secure_url || null;
+    }
+
+    // Ambil sisa data dari form
     const judul = formData.get("judul") as string;
     const description = formData.get("description") as string;
-    const imageUrl = formData.get("imageUrl") as string | undefined;
-    const videoUrl = formData.get("videoUrl") as string | undefined;
     const category = formData.get("category") as string;
     const langkah_langkah = formData.getAll("langkah_langkah") as string[];
 
-    // Validasi array langkah_langkah
-    if (
-      !Array.isArray(langkah_langkah) ||
-      !langkah_langkah.every((s) => typeof s === "string")
-    ) {
-      throw new Error("Format langkah-langkah tidak valid.");
-    }
-
-    // Validasi input dengan Zod Schema
+    // Validasi data dengan Zod (termasuk URL baru)
     const validationResult = materiSchema.safeParse({
       judul,
       description,
-      image_url: imageUrl,
-      video_url: videoUrl,
+      image_url: imageUrl, // Gunakan URL dari Cloudinary
+      video_url: videoUrl, // Gunakan URL dari Cloudinary
       step: langkah_langkah,
     });
 
     if (!validationResult.success) {
-      const firstErrorMessage = validationResult.error.errors[0]?.message;
-      throw new Error(firstErrorMessage || "Validasi data materi gagal.");
+      throw new Error(
+        validationResult.error.errors[0]?.message ||
+          "Validasi data materi gagal."
+      );
     }
 
-    // Insert ke tabel Materi
+    // Insert ke Supabase dengan URL dari Cloudinary
     const { error: materiInsertError } = await supabase.from("Materi").insert({
       judul: validationResult.data.judul,
       description: validationResult.data.description,
       image_url: validationResult.data.image_url,
       video_url: validationResult.data.video_url,
-      langkah_langkah: validationResult.data.step, // array of string
+      langkah_langkah: validationResult.data.step,
       uploader_id: uploaderId,
       category,
     });
 
-    if (materiInsertError) {
-      throw new Error(`Gagal menambah materi: ${materiInsertError.message}`);
-    }
+    if (materiInsertError) throw materiInsertError;
+
+    revalidatePath("/dashboard-superadmin");
+    revalidatePath("/materi");
 
     return { success: true, errorMessage: null };
   } catch (error) {
     return handleError(error);
   }
 };
-
 // --- 2. GET MATERI BY ID ACTION ---
 export const getMateriByIdAction = async (id: string) => {
   try {
     const supabase = await createClient();
-
     const { data, error } = await supabase
       .from("Materi")
-      .select("*")
+      .select(MATERI_WITH_KATEGORI_SELECT)
       .eq("id", id)
       .single();
 
-    if (error) {
-      throw error;
-    }
+    if (error) throw error;
     if (!data) throw new Error("Materi tidak ditemukan.");
 
-    return { materi: data, errorMessage: null };
+    return { success: true, materi: data };
   } catch (error) {
     return handleError(error);
   }
@@ -162,73 +205,111 @@ export const getAllMateriAction = async () => {
   }
 };
 
-// --- 4. UPDATE MATERI ACTION ---
 export const updateMateriAction = async (id: string, formData: FormData) => {
+  // Tambahkan log di awal untuk memastikan fungsi dan ID benar
+  console.log(`--- MEMULAI UPDATE MATERI UNTUK ID: ${id} ---`);
   try {
     const supabase = await createClient();
-
-    // Otorisasi: Hanya super_admin yang bisa mengedit materi
     await checkRequiredRole(supabase, "super_admin");
 
-    // Ambil data dari FormData
-    const judul = formData.get("judul") as string | undefined;
-    const description = formData.get("description") as string | undefined;
-    const imageUrl = formData.get("image_url") as string | undefined;
-    const videoUrl = formData.get("video_url") as string | undefined;
-    const category = formData.get("category") as string | undefined; // sesuai field di tabel Materi
-    const stepString = formData.get("langkah_langkah") as string | undefined;
+    const { data: materiSaatIni, error: fetchError } = await supabase
+      .from("Materi")
+      .select("image_url, video_url")
+      .eq("id", id)
+      .single();
 
-    let step: string[] | undefined;
-    if (stepString !== undefined) {
-      try {
-        step = JSON.parse(stepString);
-        if (!Array.isArray(step) || !step.every((s) => typeof s === "string")) {
-          throw new Error("Format langkah-langkah tidak valid.");
-        }
-      } catch {
-        throw new Error(
-          "Format langkah-langkah tidak valid. Harap masukkan array teks yang valid."
-        );
-      }
+    if (fetchError) {
+      throw new Error(
+        `Materi awal tidak ditemukan (ID: ${id}). Error: ${fetchError.message}`
+      );
     }
 
-    // Validasi input dengan Zod Schema (gunakan .partial() untuk update)
-    const validationResult = materiSchema.partial().safeParse({
-      judul,
-      description,
+    // ... (Logika upload file Anda sudah benar, biarkan apa adanya)
+    const imageFile = formData.get("imageFile") as File | null;
+    const videoFile = formData.get("videoFile") as File | null;
+    let imageUrl: string | null = materiSaatIni.image_url;
+    let videoUrl: string | null = materiSaatIni.video_url;
+
+    if (imageFile && imageFile.size > 0) {
+      // ... (logika upload gambar)
+      const imageBuffer = Buffer.from(await imageFile.arrayBuffer());
+      const imgResult = await new Promise<UploadResult | null>(
+        (resolve, reject) => {
+          const stream = cloudinary.uploader.upload_stream(
+            { folder: "papua_mandiri_materi_images" },
+            (error, result) => {
+              if (error) reject(new Error("Gagal mengunggah gambar baru."));
+              if (result) resolve(result as UploadResult);
+            }
+          );
+          stream.end(imageBuffer);
+        }
+      );
+      if (imgResult) imageUrl = imgResult.secure_url;
+    }
+    if (videoFile && videoFile.size > 0) {
+      // ... (logika upload video)
+      const videoBuffer = Buffer.from(await videoFile.arrayBuffer());
+      const vidResult = await new Promise<UploadResult | null>(
+        (resolve, reject) => {
+          const stream = cloudinary.uploader.upload_stream(
+            { folder: "papua_mandiri_materi_videos", resource_type: "video" },
+            (error, result) => {
+              if (error) reject(new Error("Gagal mengunggah video baru."));
+              if (result) resolve(result as UploadResult);
+            }
+          );
+          stream.end(videoBuffer);
+        }
+      );
+      if (vidResult) videoUrl = vidResult.secure_url;
+    }
+
+    // Siapkan data untuk diupdate
+    const dataToUpdate = {
+      judul: formData.get("judul") as string,
+      description: formData.get("description") as string,
+      langkah_langkah: formData
+        .getAll("langkah_langkah")
+        .filter((s) => s.trim() !== ""),
       image_url: imageUrl,
       video_url: videoUrl,
-      step,
-    });
-
-    if (!validationResult.success) {
-      const firstErrorMessage = validationResult.error.errors[0]?.message;
-      throw new Error(firstErrorMessage || "Validasi data materi gagal.");
-    }
-
-    // Buat objek untuk di-update ke DB
-    const dataToUpdate: Record<string, unknown> = {
-      ...validationResult.data,
-      ...(step !== undefined && { langkah_langkah: step }),
-      ...(category && { category }),
+      category: formData.get("category") as string,
+      updated_at: new Date().toISOString(),
     };
-    delete dataToUpdate.step;
 
-    const { error: materiUpdateError } = await supabase
+    // --- LOG 1: LIHAT DATA YANG AKAN DIKIRIM ---
+    console.log(
+      "Data yang akan dikirim ke Supabase:",
+      JSON.stringify(dataToUpdate, null, 2)
+    );
+
+    // --- PERUBAHAN PENTING: Tambahkan .select() untuk mendapatkan respons ---
+    const { data: updatedData, error: materiUpdateError } = await supabase
       .from("Materi")
       .update(dataToUpdate)
-      .eq("id", id);
+      .eq("id", id)
+      .select(); // <-- Tambahkan .select()
+
+    // --- LOG 2: LIHAT RESPON DARI DATABASE ---
+    console.log("Respons dari Supabase setelah update:", {
+      updatedData,
+      materiUpdateError,
+    });
+    console.log("--- SELESAI UPDATE MATERI ---");
 
     if (materiUpdateError) {
-      throw new Error(`Gagal memperbarui materi: ${materiUpdateError.message}`);
+      throw materiUpdateError;
     }
 
-    return { success: true, errorMessage: null };
+    revalidatePath("/dashboard-superadmin");
+    revalidatePath(`/materi-details/${id}`); // Revalidasi halaman detail juga
+    return { success: true };
   } catch (error) {
+    console.error("RAW ERROR di updateMateriAction:", error);
     return handleError(error);
   }
 };
-
 // --- 5. DELETE MATERI ACTION ---
 export const deleteMateriAction = async (id: string) => {
   try {
@@ -245,6 +326,9 @@ export const deleteMateriAction = async (id: string) => {
     if (materiDeleteError) {
       throw new Error(`Gagal menghapus materi: ${materiDeleteError.message}`);
     }
+
+    revalidatePath("/dashboard-superadmin");
+    revalidatePath("/materi");
 
     return { success: true, errorMessage: null };
   } catch (error) {
@@ -308,18 +392,26 @@ export const getPopularMateriAction = async (limit: number = 4) => {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("Materi")
-      .select("*")
-      .order("views_count", { ascending: false }) // urutkan dari terbanyak
+      // Ambil juga relasi Kategori agar bisa ditampilkan di card
+      .select(
+        `
+        *,
+        Kategori ( id, judul )
+      `
+      )
+      .order("views_count", { ascending: false, nullsFirst: false })
       .limit(limit);
 
     if (error) {
-      return { errorMessage: error.message };
+      // Tidak perlu 'throw', cukup kembalikan format error yang konsisten
+      return handleError(error);
     }
-    return { popularMateriList: data, errorMessage: null };
-  } catch (error: any) {
-    return {
-      errorMessage: error.message || "Gagal mengambil data materi populer",
-    };
+
+    // --- PERBAIKAN UTAMA DI SINI ---
+    // Tambahkan properti `success: true` pada hasil yang berhasil
+    return { success: true, popularMateriList: data, errorMessage: null };
+  } catch (error) {
+    return handleError(error);
   }
 };
 

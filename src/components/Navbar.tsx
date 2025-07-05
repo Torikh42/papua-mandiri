@@ -13,7 +13,6 @@ const navItemsNotLoggedIn = [
   { href: "/", label: "Home" },
   { href: "/materi", label: "Materi" },
   { href: "/kategori-materi", label: "Kategori" },
-  { href: "/faq", label: "FAQ" },
 ];
 
 const navItemsLoggedIn = [
@@ -21,7 +20,6 @@ const navItemsLoggedIn = [
   { href: "/materi", label: "Materi" },
   { href: "/kategori-materi", label: "Kategori" },
   { href: "/paman-ai", label: "Paman AI" },
-  { href: "/faq", label: "FAQ" },
 ];
 
 export type UserRole = "user" | "admin_komunitas" | "admin_pemerintah" | "super_admin";
@@ -44,9 +42,9 @@ export default function Navbar({ user }: { user: User }) {
 
   let dashboardHref = "/dashboard";
   if (user?.role === "admin_komunitas") {
-    dashboardHref = "/dashboard-admin-komunitas";
+    dashboardHref = "/dashboard-adminkomunitas";
   } else if (user?.role === "admin_pemerintah") {
-    dashboardHref = "/dashboard-admin-pemerintah";
+    dashboardHref = "/dashboard-adminpemerintah";
   } else if (user?.role === "super_admin") {
     dashboardHref = "/dashboard-superadmin";
   } else if (user?.role === "user") {

@@ -29,12 +29,6 @@ const Home = () => {
       {/* Render KategoriSdaSection, yang akan mengambil dan menampilkan KategoriSdaCard secara benar */}
       <KategoriSdaSection />
       {/* --- AKHIR PERBAIKAN --- */}
-      <h4
-        style={{ color: "#4C7A6b" }}
-        className="text-2xl font-bold text-center"
-      >
-        FAQ
-      </h4>
       <footer className="text-sm text-gray-500"></footer>
     </div>
   );

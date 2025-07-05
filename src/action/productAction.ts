@@ -1,432 +1,409 @@
 "use server";
 
-import { createClient } from "@/auth/server"; // Untuk membuat Supabase client di server action
-import { handleError } from "@/lib/utils"; // Fungsi helper untuk penanganan error umum
-import { checkRequiredRole } from "@/lib/authHelper"; // Import helper otorisasi dan tipe role
-import { productSchema } from "@/schema/productSchema"; // Asumsi ada schema untuk validasi product
+import { revalidatePath } from "next/cache";
+import { createClient } from "@/auth/server";
+import { handleError } from "@/lib/utils";
+import { checkRequiredRole } from "@/lib/authHelper";
+import { productSchema } from "@/schema/productSchema";
+import cloudinary from "@/lib/cloudinary";
 
-/**
- * @function createProductAction
- * @description Menambah produk baru ke database. Hanya dapat dilakukan oleh user dengan peran 'admin_komunitas' atau 'super_admin'.
- * @param formData FormData yang berisi data produk (judul, deskripsi, harga, stok, alamat).
- * @returns {Promise<{ success: boolean; errorMessage: string | null; product?: any }>} Hasil operasi.
- */
-export const createProductAction = async (formData: FormData) => {
-  try {
-    const supabaseClient = await createClient();
-    
-    // Cek apakah user adalah admin_komunitas atau super_admin
-    let userId: string;
-    try {
-      userId = await checkRequiredRole(supabaseClient, "admin_komunitas");
-    } catch (error) {
-      try {
-        userId = await checkRequiredRole(supabaseClient, "super_admin");
-      } catch (error) {
-        throw new Error("Akses ditolak. Hanya admin_komunitas dan super_admin yang dapat melakukan operasi ini.");
-      }
-    }
+interface UploadResult {
+  secure_url: string;
+}
 
-    const judul = formData.get("judul") as string;
-    const deskripsi = formData.get("deskripsi") as string;
-    const harga = formData.get("harga") as string;
-    const stok = formData.get("stok") as string;
-    const alamat = formData.get("alamat") as string;
-
-    // Validasi input menggunakan Zod schema
-    const validationResult = productSchema.safeParse({ 
-      judul, 
-      deskripsi, 
-      harga: parseFloat(harga), 
-      stok: parseInt(stok),
-      alamat 
-    });
-    
-    if (!validationResult.success) {
-      const firstErrorMessage = validationResult.error.errors[0]?.message;
-      console.warn(
-        "⚠️ Server-side product validation failed:",
-        validationResult.error.errors
-      );
-      throw new Error(firstErrorMessage || "Validasi data produk gagal.");
-    }
-
-    // Insert data produk ke tabel 'Product'
-    const { data, error } = await supabaseClient
-      .from("Product")
-      .insert({
-        judul: validationResult.data.judul,
-        deskripsi: validationResult.data.deskripsi,
-        harga: validationResult.data.harga,
-        stok: validationResult.data.stok,
-        alamat: validationResult.data.alamat,
-        created_by: userId, // Menyimpan ID user yang membuat produk
-      })
-      .select();
-
-    if (error) {
-      console.error("Supabase insert product error:", error);
-      throw new Error(`Gagal menambah produk: ${error.message}`);
-    }
-
-    return { success: true, errorMessage: null, product: data[0] };
-  } catch (error) {
-    return handleError(error);
-  }
-};
-
-/**
- * @function getAllProductsAction
- * @description Mengambil daftar semua produk dari database. Dapat diakses oleh semua pengguna.
- * @param page Halaman yang ingin diambil (default: 1).
- * @param limit Jumlah produk per halaman (default: 10).
- * @returns {Promise<{ success: boolean; errorMessage: string | null; products?: any[]; totalCount?: number }>} Daftar produk.
- */
-export const getAllProductsAction = async (page: number = 1, limit: number = 10) => {
+export const ajukanProdukAction = async (formData: FormData) => {
   try {
     const supabase = await createClient();
-    
-    const offset = (page - 1) * limit;
+    const userId = await checkRequiredRole(supabase, "admin_komunitas");
 
-    // Ambil produk dengan pagination
-    const { data, error, count } = await supabase
-      .from("Product")
-      .select("*", { count: 'exact' })
-      .eq("is_active", true) // Hanya produk yang aktif
-      .order("created_at", { ascending: false })
-      .range(offset, offset + limit - 1);
+    const file = formData.get("imageUrl") as File | null;
+    let imageUrl: string | null = null;
 
-    if (error) {
-      console.error("Supabase get all products error:", error);
-      throw new Error(`Gagal memuat produk: ${error.message}`);
+    // --- LOGIKA UPLOAD KE CLOUDINARY ---
+    if (file && file.size > 0) {
+      // 1. Ubah file menjadi buffer
+      const bytes = await file.arrayBuffer();
+      const buffer = Buffer.from(bytes);
+
+      // 2. Upload ke Cloudinary menggunakan stream
+      const result = await new Promise<UploadResult | null>(
+        (resolve, reject) => {
+          const stream = cloudinary.uploader.upload_stream(
+            {
+              folder: "papua_mandiri_produk", // Opsional: nama folder di Cloudinary
+            },
+            (error, result) => {
+              if (error) {
+                console.error("Cloudinary upload error:", error);
+                reject(new Error("Gagal mengunggah gambar."));
+              }
+              if (result) {
+                resolve(result as UploadResult);
+              }
+            }
+          );
+          stream.end(buffer);
+        }
+      );
+
+      if (result) {
+        imageUrl = result.secure_url; // 3. Dapatkan URL aman dari hasil upload
+      }
     }
+    // --- AKHIR LOGIKA UPLOAD ---
 
-    return { 
-      success: true, 
-      products: data, 
-      totalCount: count || 0,
-      errorMessage: null 
+    const productData = {
+      judul: (formData.get("judul") as string) || "",
+      description: (formData.get("description") as string) || "",
+      harga: parseFloat((formData.get("harga") as string) || "0"),
+      stok: parseInt((formData.get("stok") as string) || "0"),
+      alamat: (formData.get("alamat") as string) || "",
+      imageUrl: imageUrl, // 4. Gunakan URL dari Cloudinary (atau null jika tidak ada file)
     };
-  } catch (error) {
-    return handleError(error);
-  }
-};
 
-/**
- * @function getProductByIdAction
- * @description Mengambil detail produk berdasarkan ID. Dapat diakses oleh semua pengguna.
- * @param id ID produk yang ingin diambil.
- * @returns {Promise<{ success: boolean; errorMessage: string | null; product?: any }>} Detail produk.
- */
-export const getProductByIdAction = async (id: string) => {
-  try {
-    const supabase = await createClient();
-    
-    if (!id) {
-      throw new Error("ID produk tidak valid.");
-    }
-
-    const { data, error } = await supabase
-      .from("Product")
-      .select("*")
-      .eq("id", id)
-      .eq("is_active", true)
-      .single();
-
-    if (error) {
-      if (error.code === "PGRST116") {
-        throw new Error("Produk tidak ditemukan.");
-      }
-      console.error("Supabase get product by id error:", error);
-      throw new Error(`Gagal memuat produk: ${error.message}`);
-    }
-
-    return { success: true, product: data, errorMessage: null };
-  } catch (error) {
-    return handleError(error);
-  }
-};
-
-/**
- * @function updateProductAction
- * @description Memperbarui produk berdasarkan ID. Hanya dapat dilakukan oleh user dengan peran 'admin_komunitas' atau 'super_admin'.
- * @param id ID produk yang ingin diperbarui.
- * @param formData FormData yang berisi data produk yang akan diperbarui.
- * @returns {Promise<{ success: boolean; errorMessage: string | null; product?: any }>} Hasil operasi.
- */
-export const updateProductAction = async (id: string, formData: FormData) => {
-  try {
-    const supabaseClient = await createClient();
-    
-    // Cek apakah user adalah admin_komunitas atau super_admin
-    let userId: string;
-    try {
-      userId = await checkRequiredRole(supabaseClient, "admin_komunitas");
-    } catch (error) {
-      try {
-        userId = await checkRequiredRole(supabaseClient, "super_admin");
-      } catch (error) {
-        throw new Error("Akses ditolak. Hanya admin_komunitas dan super_admin yang dapat melakukan operasi ini.");
-      }
-    }
-
-    if (!id) {
-      throw new Error("ID produk tidak valid.");
-    }
-
-    const judul = formData.get("judul") as string;
-    const deskripsi = formData.get("deskripsi") as string;
-    const harga = formData.get("harga") as string;
-    const stok = formData.get("stok") as string;
-    const alamat = formData.get("alamat") as string;
-
-    // Validasi input menggunakan Zod schema
-    const validationResult = productSchema.safeParse({ 
-      judul, 
-      deskripsi, 
-      harga: parseFloat(harga), 
-      stok: parseInt(stok),
-      alamat 
-    });
-    
+    const validationResult = productSchema.safeParse(productData);
     if (!validationResult.success) {
-      const firstErrorMessage = validationResult.error.errors[0]?.message;
-      console.warn(
-        "⚠️ Server-side product validation failed:",
-        validationResult.error.errors
+      throw new Error(
+        validationResult.error.errors[0]?.message ||
+          "Validasi data produk gagal."
       );
-      throw new Error(firstErrorMessage || "Validasi data produk gagal.");
     }
 
-    // Update data produk
-    const { data, error } = await supabaseClient
-      .from("Product")
-      .update({
-        judul: validationResult.data.judul,
-        deskripsi: validationResult.data.deskripsi,
-        harga: validationResult.data.harga,
-        stok: validationResult.data.stok,
-        alamat: validationResult.data.alamat,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", id)
-      .select()
-      .single();
+    // 5. Insert data ke Supabase dengan URL baru
+    const { error } = await supabase.from("Produk").insert({
+      ...validationResult.data,
+      created_by: userId,
+      status: "diajukan",
+    });
 
-    if (error) {
-      if (error.code === "PGRST116") {
-        throw new Error("Produk tidak ditemukan.");
-      }
-      console.error("Supabase update product error:", error);
-      throw new Error(`Gagal memperbarui produk: ${error.message}`);
-    }
+    if (error) throw error;
 
-    return { success: true, errorMessage: null, product: data };
-  } catch (error) {
-    return handleError(error);
-  }
-};
-
-/**
- * @function deleteProductAction
- * @description Menghapus produk berdasarkan ID (soft delete). Hanya dapat dilakukan oleh user dengan peran 'admin_komunitas' atau 'super_admin'.
- * @param id ID produk yang ingin dihapus.
- * @returns {Promise<{ success: boolean; errorMessage: string | null }>} Hasil operasi.
- */
-export const deleteProductAction = async (id: string) => {
-  try {
-    const supabaseClient = await createClient();
-    
-    // Cek apakah user adalah admin_komunitas atau super_admin
-    let userId: string;
-    try {
-      userId = await checkRequiredRole(supabaseClient, "admin_komunitas");
-    } catch (error) {
-      try {
-        userId = await checkRequiredRole(supabaseClient, "super_admin");
-      } catch (error) {
-        throw new Error("Akses ditolak. Hanya admin_komunitas dan super_admin yang dapat melakukan operasi ini.");
-      }
-    }
-
-    if (!id) {
-      throw new Error("ID produk tidak valid.");
-    }
-
-    // Soft delete - set is_active menjadi false
-    const { error } = await supabaseClient
-      .from("Product")
-      .update({
-        is_active: false,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", id);
-
-    if (error) {
-      if (error.code === "PGRST116") {
-        throw new Error("Produk tidak ditemukan.");
-      }
-      console.error("Supabase delete product error:", error);
-      throw new Error(`Gagal menghapus produk: ${error.message}`);
-    }
-
+    revalidatePath("/dashboard-admin-komunitas");
     return { success: true, errorMessage: null };
   } catch (error) {
     return handleError(error);
   }
 };
 
-/**
- * @function searchProductsAction
- * @description Mencari produk berdasarkan judul atau deskripsi. Dapat diakses oleh semua pengguna.
- * @param searchTerm Kata kunci pencarian.
- * @param page Halaman yang ingin diambil (default: 1).
- * @param limit Jumlah produk per halaman (default: 10).
- * @returns {Promise<{ success: boolean; errorMessage: string | null; products?: any[]; totalCount?: number }>} Hasil pencarian produk.
- */
-export const searchProductsAction = async (
-  searchTerm: string, 
-  page: number = 1, 
-  limit: number = 10
+export const getProdukKomunitasAction = async () => {
+  try {
+    const supabase = await createClient();
+    const userId = await checkRequiredRole(supabase, "admin_komunitas");
+    const { data, error } = await supabase
+      .from("Produk")
+      .select("*")
+      .eq("created_by", userId)
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    return { success: true, data, errorMessage: null };
+  } catch (error) {
+    return handleError(error);
+  }
+};
+
+// === AKSI UNTUK ADMIN PEMERINTAH ===
+
+export const getProdukUntukPemerintahAction = async () => {
+  try {
+    const supabase = await createClient();
+    await checkRequiredRole(supabase, "admin_pemerintah");
+    const { data, error } = await supabase
+      .from("Produk")
+      .select(`*, pembuat:created_by (user_name)`)
+      .eq("status", "diajukan")
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    return { success: true, data, errorMessage: null };
+  } catch (error) {
+    return handleError(error);
+  }
+};
+
+export const updateProdukStatusAction = async (
+  produkId: string,
+  status: "disetujui" | "ditolak",
+  catatan: string
 ) => {
   try {
     const supabase = await createClient();
-    
-    if (!searchTerm || searchTerm.trim().length < 2) {
-      throw new Error("Kata kunci pencarian minimal 2 karakter.");
-    }
-
-    const offset = (page - 1) * limit;
-
-    const { data, error, count } = await supabase
-      .from("Product")
-      .select("*", { count: 'exact' })
-      .eq("is_active", true)
-      .or(`judul.ilike.%${searchTerm.trim()}%,deskripsi.ilike.%${searchTerm.trim()}%`)
-      .order("created_at", { ascending: false })
-      .range(offset, offset + limit - 1);
-
-    if (error) {
-      console.error("Supabase search products error:", error);
-      throw new Error(`Gagal mencari produk: ${error.message}`);
-    }
-
-    return { 
-      success: true, 
-      products: data, 
-      totalCount: count || 0,
-      errorMessage: null 
-    };
-  } catch (error) {
-    return handleError(error);
-  }
-};
-
-/**
- * @function getProductsByUserAction
- * @description Mengambil produk yang dibuat oleh user tertentu. Hanya dapat diakses oleh admin_komunitas atau super_admin.
- * @param userId ID user yang produknya ingin diambil (optional, default: current user).
- * @param page Halaman yang ingin diambil (default: 1).
- * @param limit Jumlah produk per halaman (default: 10).
- * @returns {Promise<{ success: boolean; errorMessage: string | null; products?: any[]; totalCount?: number }>} Daftar produk user.
- */
-export const getProductsByUserAction = async (
-  userId?: string, 
-  page: number = 1, 
-  limit: number = 10
-) => {
-  try {
-    const supabaseClient = await createClient();
-    
-    // Cek apakah user adalah admin_komunitas atau super_admin
-    let currentUserId: string;
-    try {
-      currentUserId = await checkRequiredRole(supabaseClient, "admin_komunitas");
-    } catch (error) {
-      try {
-        currentUserId = await checkRequiredRole(supabaseClient, "super_admin");
-      } catch (error) {
-        throw new Error("Akses ditolak. Hanya admin_komunitas dan super_admin yang dapat melakukan operasi ini.");
-      }
-    }
-
-    const targetUserId = userId || currentUserId;
-    const offset = (page - 1) * limit;
-
-    const { data, error, count } = await supabaseClient
-      .from("Product")
-      .select("*", { count: 'exact' })
-      .eq("created_by", targetUserId)
-      .eq("is_active", true)
-      .order("created_at", { ascending: false })
-      .range(offset, offset + limit - 1);
-
-    if (error) {
-      console.error("Supabase get products by user error:", error);
-      throw new Error(`Gagal memuat produk user: ${error.message}`);
-    }
-
-    return { 
-      success: true, 
-      products: data, 
-      totalCount: count || 0,
-      errorMessage: null 
-    };
-  } catch (error) {
-    return handleError(error);
-  }
-};
-
-/**
- * @function updateProductStockAction
- * @description Memperbarui stok produk. Hanya dapat dilakukan oleh user dengan peran 'admin_komunitas' atau 'super_admin'.
- * @param id ID produk yang ingin diperbarui stoknya.
- * @param newStock Jumlah stok baru.
- * @returns {Promise<{ success: boolean; errorMessage: string | null; product?: any }>} Hasil operasi.
- */
-export const updateProductStockAction = async (id: string, newStock: number) => {
-  try {
-    const supabaseClient = await createClient();
-    
-    // Cek apakah user adalah admin_komunitas atau super_admin
-    let userId: string;
-    try {
-      userId = await checkRequiredRole(supabaseClient, "admin_komunitas");
-    } catch (error) {
-      try {
-        userId = await checkRequiredRole(supabaseClient, "super_admin");
-      } catch (error) {
-        throw new Error("Akses ditolak. Hanya admin_komunitas dan super_admin yang dapat melakukan operasi ini.");
-      }
-    }
-
-    if (!id) {
-      throw new Error("ID produk tidak valid.");
-    }
-
-    if (newStock < 0) {
-      throw new Error("Stok tidak boleh negatif.");
-    }
-
-    const { data, error } = await supabaseClient
-      .from("Product")
+    const userId = await checkRequiredRole(supabase, "admin_pemerintah");
+    const { error } = await supabase
+      .from("Produk")
       .update({
-        stok: newStock,
+        status: status,
+        catatan_pemerintah: catatan,
+        reviewed_by: userId,
         updated_at: new Date().toISOString(),
       })
-      .eq("id", id)
-      .select()
-      .single();
+      .eq("id", produkId);
+    if (error) throw error;
+    revalidatePath("/dashboard-admin-pemerintah");
+    return { success: true, errorMessage: null };
+  } catch (error) {
+    return handleError(error);
+  }
+};
 
-    if (error) {
-      if (error.code === "PGRST116") {
-        throw new Error("Produk tidak ditemukan.");
-      }
-      console.error("Supabase update product stock error:", error);
-      throw new Error(`Gagal memperbarui stok produk: ${error.message}`);
+export const getProdukDisetujuiAction = async () => {
+  try {
+    const supabase = await createClient();
+    await checkRequiredRole(supabase, "admin_pemerintah");
+    const { data, error } = await supabase
+      .from("Produk")
+      .select("*")
+      .eq("status", "disetujui")
+      .gt("stok", 0)
+      .order("updated_at", { ascending: false });
+    if (error) throw error;
+    return { success: true, data, errorMessage: null };
+  } catch (error) {
+    return handleError(error);
+  }
+};
+
+export const createPesananPemerintahAction = async (
+  produkId: string,
+  jumlahDipesan: number,
+  catatan: string
+) => {
+  try {
+    const supabase = await createClient();
+    const userId = await checkRequiredRole(supabase, "admin_pemerintah");
+
+    if (jumlahDipesan <= 0) {
+      throw new Error("Jumlah pesanan harus lebih dari 0.");
     }
 
-    return { success: true, errorMessage: null, product: data };
+    // 1. Ambil data produk terbaru untuk memeriksa stok
+    const { data: produk, error: produkError } = await supabase
+      .from("Produk")
+      .select("stok")
+      .eq("id", produkId)
+      .single();
+
+    if (produkError || !produk) {
+      throw new Error("Produk tidak ditemukan atau gagal mengambil data stok.");
+    }
+
+    // 2. Validasi stok di sisi server
+    if (produk.stok < jumlahDipesan) {
+      throw new Error(`Stok tidak mencukupi. Stok tersedia: ${produk.stok}`);
+    }
+
+    // 3. Buat catatan pesanan baru
+    const { error: insertError } = await supabase
+      .from("PesananPemerintah")
+      .insert({
+        produkId: produkId,
+        jumlah_dipesan: jumlahDipesan,
+        catatan_pesanan: catatan,
+        dipesan_oleh_id: userId,
+      });
+
+    if (insertError) throw insertError;
+
+    // 4. Kurangi stok produk (RISIKO: Jika ini gagal, data bisa tidak konsisten)
+    const { error: updateError } = await supabase
+      .from("Produk")
+      .update({ stok: produk.stok - jumlahDipesan })
+      .eq("id", produkId);
+
+    if (updateError) throw updateError;
+
+    revalidatePath("/dashboard-admin-pemerintah");
+    return { success: true };
+  } catch (error) {
+    return handleError(error);
+  }
+};
+
+export const getRiwayatPesananAction = async () => {
+  try {
+    const supabase = await createClient();
+    const userId = await checkRequiredRole(supabase, "admin_pemerintah");
+    const { data, error } = await supabase
+      .from("PesananPemerintah")
+      .select(`*, produk:produkId(judul, imageUrl)`)
+      .eq("dipesan_oleh_id", userId)
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    return { success: true, data };
+  } catch (error) {
+    return handleError(error);
+  }
+};
+
+export const getPesananUntukKomunitasAction = async () => {
+  try {
+    const supabase = await createClient();
+    const userId = await checkRequiredRole(supabase, "admin_komunitas");
+
+    // Ambil semua produk yang dibuat oleh user ini, beserta semua pesanan yang terkait
+    const { data, error } = await supabase
+      .from("Produk")
+      .select(
+        `
+        id, 
+        judul,
+        PesananPemerintah (
+          *,
+          pemesan:dipesan_oleh_id (user_name)
+        )
+      `
+      )
+      .eq("created_by", userId);
+
+    if (error) throw error;
+
+    // Olah data agar lebih mudah digunakan di frontend
+    const pesananList = data
+      .flatMap((produk) =>
+        produk.PesananPemerintah.map((pesanan) => ({
+          ...pesanan,
+          produk: { judul: produk.judul }, // Tambahkan info produk ke setiap pesanan
+        }))
+      )
+      .sort(
+        (a, b) =>
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+
+    return { success: true, data: pesananList };
+  } catch (error) {
+    return handleError(error);
+  }
+};
+
+/**
+ * Aksi untuk admin komunitas memperbarui status pesanan (misal: menandai selesai).
+ */
+export const updateStatusPesananKomunitasAction = async (
+  pesananId: string,
+  status: "selesai" | "dibatalkan"
+) => {
+  try {
+    const supabase = await createClient();
+    const userId = await checkRequiredRole(supabase, "admin_komunitas");
+
+    // Langkah 1: Ambil data pesanan
+    const { data: pesanan, error: pesananError } = await supabase
+      .from("PesananPemerintah")
+      .select("produkId")
+      .eq("id", pesananId)
+      .single();
+
+    if (pesananError || !pesanan) {
+      throw new Error("Pesanan tidak ditemukan.");
+    }
+
+    // Langkah 2: Ambil data produk terkait
+    const { data: produk, error: produkError } = await supabase
+      .from("Produk")
+      .select("created_by")
+      .eq("id", pesanan.produkId)
+      .single();
+
+    if (produkError || !produk) {
+      throw new Error("Produk terkait pesanan ini tidak ditemukan.");
+    }
+
+    // Langkah 3: Verifikasi keamanan
+    if (produk.created_by !== userId) {
+      throw new Error(
+        "Akses ditolak: Anda tidak dapat mengubah status pesanan ini."
+      );
+    }
+
+    // Langkah 4: Update status pesanan
+    const { error: updateError } = await supabase
+      .from("PesananPemerintah")
+      .update({ status_pesanan: status, updated_at: new Date().toISOString() })
+      .eq("id", pesananId);
+
+    if (updateError) throw updateError;
+
+    revalidatePath("/dashboard-admin-komunitas");
+    return { success: true };
+  } catch (error) {
+    // --- TAMBAHKAN CONSOLE.ERROR DI SINI ---
+    console.error("RAW ERROR in updateStatusPesananKomunitasAction:", error);
+    return handleError(error);
+  }
+};
+
+export const updateProdukAction = async (
+  produkId: string,
+  formData: FormData
+) => {
+  try {
+    const supabase = await createClient();
+    const userId = await checkRequiredRole(supabase, "admin_komunitas");
+
+    const { data: produkSaatIni, error: fetchError } = await supabase
+      .from("Produk")
+      .select("created_by, status, imageUrl")
+      .eq("id", produkId)
+      .single();
+
+    if (fetchError || !produkSaatIni)
+      throw new Error("Produk tidak ditemukan.");
+    if (produkSaatIni.created_by !== userId) throw new Error("Akses ditolak.");
+    if (produkSaatIni.status === "disetujui")
+      throw new Error("Produk yang sudah disetujui tidak dapat diedit.");
+
+    const file = formData.get("imageUrl") as File | null;
+    let imageUrl: string | null = produkSaatIni.imageUrl;
+
+    if (file && file.size > 0) {
+      const bytes = await file.arrayBuffer();
+      const buffer = Buffer.from(bytes);
+      const result = await new Promise<UploadResult | null>(
+        (resolve, reject) => {
+          const stream = cloudinary.uploader.upload_stream(
+            { folder: "papua_mandiri_produk" },
+            (error, result) => {
+              if (error) reject(new Error("Gagal mengunggah gambar baru."));
+              if (result) resolve(result as UploadResult);
+            }
+          );
+          stream.end(buffer);
+        }
+      );
+      if (result) {
+        imageUrl = result.secure_url;
+      }
+    }
+
+    const productData = {
+      judul: (formData.get("judul") as string) || "",
+      deskripsi: (formData.get("description") as string) || "",
+      harga: parseFloat((formData.get("harga") as string) || "0"),
+      stok: parseInt((formData.get("stok") as string) || "0"),
+      alamat: (formData.get("alamat") as string) || "",
+      imageUrl: imageUrl,
+    };
+
+    const validationResult = productSchema.partial().safeParse(productData);
+    if (!validationResult.success) {
+      throw new Error(
+        validationResult.error.errors[0]?.message ||
+          "Validasi data produk gagal."
+      );
+    }
+
+    const { error: updateError } = await supabase
+      .from("Produk")
+      .update({
+        ...validationResult.data,
+        status: "diajukan",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", produkId);
+
+    if (updateError) throw updateError;
+
+    revalidatePath("/dashboard-admin-komunitas");
+    return { success: true, errorMessage: null };
   } catch (error) {
     return handleError(error);
   }

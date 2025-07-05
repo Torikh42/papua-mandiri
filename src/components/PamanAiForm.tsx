@@ -8,7 +8,6 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import ReactMarkdown from "react-markdown";
 
-// Tipe untuk pesan
 export type ChatMessage = {
   role: "user" | "assistant";
   content: string;
@@ -33,26 +32,29 @@ export default function PamanAiForm() {
 
     const userMessage: ChatMessage = { role: "user", content: input };
     setMessages((prev) => [...prev, userMessage]);
+    const currentInput = input;
     setInput("");
 
     startTransition(async () => {
-      const result = await askPamanAiAction(input, messages);
+      // Untuk Paman AI, kita tidak perlu mengirim riwayat chat dari client
+      // karena konteks selalu diambil dari database materi.
+      const result = await askPamanAiAction(currentInput, []);
 
-      if (result.error) {
-        toast.error(result.error);
-        setMessages((prev) => prev.slice(0, -1));
-      } else if (result.response) {
+      if ("response" in result && result.response) {
         const assistantMessage: ChatMessage = {
           role: "assistant",
           content: result.response,
         };
         setMessages((prev) => [...prev, assistantMessage]);
+      } else {
+        toast.error(result.errorMessage || "Gagal mendapatkan respon AI.");
+        setMessages((prev) => prev.slice(0, -1));
       }
     });
   };
 
   return (
-    <div className="flex flex-col h-[70vh] w-full max-w-2xl mx-auto bg-white rounded-lg shadow-xl border">
+    <div className="flex flex-col h-[70vh] w-full max-w-3xl mx-auto bg-white rounded-lg shadow-xl border">
       <div
         ref={chatContainerRef}
         className="flex-1 p-6 space-y-4 overflow-y-auto"
@@ -65,33 +67,22 @@ export default function PamanAiForm() {
             }`}
           >
             <div
-              className={`max-w-xs md:max-w-md lg:max-w-lg p-3 rounded-lg ${
+              className={`max-w-full lg:max-w-2xl p-3 rounded-lg ${
                 msg.role === "user"
-                  ? "bg-blue-500 text-white"
+                  ? "bg-green-600 text-white"
                   : "bg-gray-100 text-gray-800"
               }`}
             >
-              <ReactMarkdown
-                components={{
-                  h1: ({ ...props }) => (
-                    <h1 className="text-2xl font-bold mb-2" {...props} />
-                  ),
-                  h2: ({ ...props }) => (
-                    <h2 className="text-xl font-semibold mb-2" {...props} />
-                  ),
-                  p: ({ ...props }) => (
-                    <p className="mb-2 leading-relaxed" {...props} />
-                  ),
-                  li: ({ ...props }) => (
-                    <li className="list-disc list-inside" {...props} />
-                  ),
-                  strong: ({ ...props }) => (
-                    <strong className="font-semibold" {...props} />
-                  ),
-                }}
-              >
-                {msg.content}
-              </ReactMarkdown>
+              {/* --- PERBAIKAN UTAMA DI SINI --- */}
+              {msg.role === "assistant" ? (
+                // Gunakan kelas 'prose' untuk styling otomatis dari tailwindcss-typography
+                <div className="prose prose-sm md:prose-base max-w-none prose-headings:text-green-800">
+                  <ReactMarkdown>{msg.content}</ReactMarkdown>
+                </div>
+              ) : (
+                // Untuk pesan user, tampilkan seperti biasa
+                <p className="whitespace-pre-wrap">{msg.content}</p>
+              )}
             </div>
           </div>
         ))}
@@ -105,8 +96,11 @@ export default function PamanAiForm() {
         )}
       </div>
 
-      <div className="p-4 border-t">
-        <form onSubmit={handleSubmit} className="flex items-center gap-2">
+      <div className="p-4 border-t bg-gray-50">
+        <form
+          onSubmit={handleSubmit}
+          className="flex items-center gap-2 max-w-3xl mx-auto"
+        >
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
